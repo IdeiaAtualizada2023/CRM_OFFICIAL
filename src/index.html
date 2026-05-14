@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Vendas Pro</title>
+
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL,GRAD,opsz@300,0,0,24"
+        rel="stylesheet" />
+
+    <link rel="stylesheet" href="styles/main.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+</head>
+
+<body class="theme-light loading-state">
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="assets/logo.png" alt="Amels"
+                    style="max-width: 100%; max-height: 60px; object-fit: contain;">
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-target="dashboard">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </button>
+                <button class="nav-item" data-target="sales">
+                    <span class="material-symbols-outlined">receipt_long</span>
+                    Lista de Vendas
+                </button>
+                <button class="nav-item" data-target="new-sale">
+                    <span class="material-symbols-outlined">add_circle</span>
+                    Nova Venda
+                </button>
+                <button class="nav-item" data-target="users" id="nav-users">
+                    <span class="material-symbols-outlined">group</span>
+                    Usuários
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="nav-item theme-toggle" id="theme-toggle">
+                    <span class="material-symbols-outlined">dark_mode</span>
+                    Modo Escuro
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-header">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button id="mobile-menu-btn" class="material-symbols-outlined" style="display: none; background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-main);">
+                        menu
+                    </button>
+                    <div class="header-search">
+                        <span class="material-symbols-outlined">search</span>
+                        <input type="text" placeholder="Buscar por CPF, Nome, Email..." id="global-search">
+                    </div>
+                </div>
+                <div class="header-user">
+                    <div class="user-info">
+                        <span class="user-name" id="current-user-name">Carregando...</span>
+                        <span class="user-role" id="current-user-role">---</span>
+                    </div>
+                    <div class="user-avatar" style="cursor: pointer;" id="user-profile-trigger">
+                        <span class="material-symbols-outlined" id="current-user-avatar">person</span>
+                    </div>
+                    <!-- User Switcher Dropdown (Simulação de Login) -->
+                    <div id="user-switcher-modal" style="display: none; position: absolute; top: 70px; right: 20px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 100; padding: 0.8rem; min-width: 220px;">
+                        <h4 style="margin-bottom: 0.8rem; font-size: 0.85rem; color: #64748b; padding-left: 5px;">Trocar Usuário:</h4>
+                        <div id="user-list-container" style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 300px; overflow-y: auto; margin-bottom: 0.8rem; padding-bottom: 0.8rem; border-bottom: 1px solid #f1f5f9;">
+                            <!-- Dinâmico via JS -->
+                        </div>
+                        <button id="btn-logout" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: #fff1f2; cursor: pointer; font-size: 0.9rem; color: #ef4444; display: flex; align-items: center; gap: 8px; border-radius: 6px; transition: background 0.2s;">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">logout</span>
+                            Sair do Sistema
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="views-container">
+                <!-- Dashboard View -->
+                <section id="view-dashboard" class="view-section">
+                    <div class="view-header">
+                        <h1>Visão Geral</h1>
+                        <p>Acompanhe o desempenho das suas vendas</p>
+                    </div>
+
+                    <div class="dashboard-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem;">
+                        <div class="card stat-card primary">
+                            <div class="card-icon"><span class="material-symbols-outlined">analytics</span></div>
+                            <div class="card-info">
+                                <h3>Total de Vendas</h3>
+                                <p class="stat-value" id="stat-total-sales" style="font-size: 1.4rem;">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card success">
+                            <div class="card-icon"><span class="material-symbols-outlined">check_circle</span></div>
+                            <div class="card-info">
+                                <h3>Concluídas</h3>
+                                <p class="stat-value" id="stat-completed" style="font-size: 1.4rem;">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card warning">
+                            <div class="card-icon"><span class="material-symbols-outlined">pending_actions</span></div>
+                            <div class="card-info">
+                                <h3>Pendentes</h3>
+                                <p class="stat-value" id="stat-pending" style="font-size: 1.4rem;">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card danger">
+                            <div class="card-icon"><span class="material-symbols-outlined">cancel</span></div>
+                            <div class="card-info">
+                                <h3>Canceladas</h3>
+                                <p class="stat-value" id="stat-canceled" style="font-size: 1.4rem;">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card info" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; padding: 0.8rem;">
+                            <div class="card-icon" style="background: rgba(255,255,255,0.2);"><span class="material-symbols-outlined" style="color: white;">payments</span></div>
+                            <div class="card-info">
+                                <h3 style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">Faturamento Total</h3>
+                                <p class="stat-value" id="stat-total-value" style="color: white; font-size: 1.15rem;">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card danger" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 0.8rem;">
+                            <div class="card-icon" style="background: rgba(255,255,255,0.2);"><span class="material-symbols-outlined" style="color: white;">money_off</span></div>
+                            <div class="card-info">
+                                <h3 style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">Vendas Perdidas</h3>
+                                <p class="stat-value" id="stat-lost-value" style="color: white; font-size: 1.15rem;">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card secondary" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 0.8rem;">
+                            <div class="card-icon" style="background: rgba(255,255,255,0.2);"><span class="material-symbols-outlined" style="color: white;">groups</span></div>
+                            <div class="card-info">
+                                <h3 style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">Total de Vidas</h3>
+                                <p class="stat-value" id="stat-total-lives" style="color: white; font-size: 1.4rem;">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card secondary" style="background: #ffffff; border: 1px solid #e2e8f0; padding: 0.8rem;">
+                            <div class="card-icon" style="background: #f8fafc;"><span class="material-symbols-outlined" style="color: #6366f1;">trending_up</span></div>
+                            <div class="card-info">
+                                <h3 style="color: #64748b; font-size: 0.85rem;">Ticket Médio</h3>
+                                <p class="stat-value" id="stat-avg-ticket" style="color: #1e293b; font-size: 1.15rem;">R$ 0,00</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-recent">
+                        <div class="card" style="min-height: 400px;">
+                            <div class="card-header">
+                                <h2>Vendas Recentes</h2>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="recent-sales-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Data</th>
+                                            <th>Cliente</th>
+                                            <th>Valor</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="card" style="min-height: 400px;">
+                            <div class="card-header">
+                                <h2>Desempenho de Vidas (Mensal)</h2>
+                            </div>
+                            <div style="padding: 1.5rem; flex: 1; display: flex; align-items: center; justify-content: center;">
+                                <canvas id="livesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sales List View -->
+                <section id="view-sales" class="view-section">
+                    <div class="view-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h1>Lista de Vendas</h1>
+                            <p>Gerencie todos os contratos e pagamentos</p>
+                        </div>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <!-- Filtro de Vendedor (Visível apenas para Admin) -->
+                            <div id="admin-filter-group" style="display: none; align-items: center; gap: 8px; background: white; padding: 6px 12px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                <span class="material-symbols-outlined" style="font-size: 20px; color: #64748b;">filter_alt</span>
+                                <select id="filter-vendedor" style="border: none; background: transparent; outline: none; font-size: 0.9rem; color: #1e293b; cursor: pointer;">
+                                    <option value="">Todos os Vendedores</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" id="btn-add-sale" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="material-symbols-outlined">add</span> Nova Venda
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card full-height">
+                        <div class="table-responsive">
+                            <table class="data-table" id="all-sales-table">
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Contrato</th>
+                                        <th>Nome</th>
+                                        <th>CPF</th>
+                                        <th>Email</th>
+                                        <th>Telefone</th>
+                                        <th>Estado</th>
+                                        <th>Cidade</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- New Sale Form View -->
+                <section id="view-new-sale" class="view-section">
+                    <div class="view-header">
+                        <h1 id="form-title">Registrar Nova Venda</h1>
+                    </div>
+
+                    <div class="card form-card">
+                        <form id="new-sale-form" class="modern-form">
+                            <input type="hidden" name="id" id="venda-id">
+                            
+                            <!-- Seleção de Vendedor (Visível apenas para Admin) -->
+                            <div id="vendedor-selection-group" style="display: none; margin-bottom: 2rem; background: #f8fafc; padding: 1.25rem; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+                                <label style="font-weight: 600; color: #475569; display: flex; align-items: center; gap: 8px; margin-bottom: 0.75rem;">
+                                    <span class="material-symbols-outlined" style="font-size: 20px;">person_search</span>
+                                    Vendedor Responsável
+                                </label>
+                                <select name="vendedor" id="vendedor-select" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; font-size: 0.95rem; color: #1e293b; outline: none; transition: border-color 0.2s;">
+                                    <option value="">Selecione o vendedor...</option>
+                                </select>
+                            </div>
+
+                            <h3 class="form-section-title">Dados do Cliente</h3>
+                            <div style="margin-bottom: 1rem; display: flex; gap: 1.5rem; background: #eff6ff; padding: 1rem; border-radius: 8px;">
+                                <label style="font-weight: 600; color: #1e40af;">Tipo de Contrato:</label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="radio" name="tipoContrato" value="Individual" checked> Individual
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="radio" name="tipoContrato" value="Empresarial"> Empresarial
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="radio" name="tipoContrato" value="Adesão"> Adesão
+                                </label>
+                            </div>
+                            <div style="margin-bottom: 1.5rem; display: flex; gap: 1.5rem; background: #eff6ff; padding: 1rem; border-radius: 8px;">
+                                <label style="font-weight: 600; color: #1e40af;">Papel do Cliente:</label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="radio" name="papelCliente" value="Titular" checked> Titular do Plano
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="radio" name="papelCliente" value="Responsável"> Apenas Responsável Financeiro
+                                </label>
+                            </div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Nome Completo</label>
+                                    <input type="text" name="nome" required placeholder="Ex: João da Silva">
+                                </div>
+                                <div class="form-group">
+                                    <label>CPF / CNPJ</label>
+                                    <input type="text" name="cpfCnpj" id="cpfCnpj" required
+                                        placeholder="000.000.000-00 ou 00.000.000/0000-00" maxlength="18">
+                                </div>
+                                <div class="form-group">
+                                    <label>E-mail</label>
+                                    <input type="email" name="email" required placeholder="joao@email.com">
+                                </div>
+                                <div class="form-group">
+                                    <label>Telefone</label>
+                                    <input type="text" name="telefone" required placeholder="(00) 00000-0000">
+                                </div>
+                                <div class="form-group">
+                                    <label>Estado</label>
+                                    <select name="estado" id="estado" required>
+                                        <option value="">Selecione o estado...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Cidade</label>
+                                    <select name="cidade" id="cidade" required disabled>
+                                        <option value="">Selecione um estado primeiro</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <h3 class="form-section-title">Dados da Venda</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Número do Contrato</label>
+                                    <input type="text" name="numeroContrato" placeholder="Ex: 123456789">
+                                </div>
+                                <div class="form-group">
+                                    <label>Data de Venda</label>
+                                    <input type="date" name="dataVenda" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select name="status" required>
+                                        <option value="Pendente">Pendente</option>
+                                        <option value="Aprovado">Aprovado</option>
+                                        <option value="Cancelado">Cancelado</option>
+                                    </select>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label>Tipo de Plano</label>
+                                    <select name="tipoPlano" required>
+                                        <option value="">Selecione o plano...</option>
+                                        <optgroup label="Nosso Plano / Ambulatorial / Mix / Smart">
+                                            <option value="Nosso Plano - Enfermaria / Com coparticipação">Nosso Plano -
+                                                Enfermaria / Com coparticipação</option>
+                                            <option value="Nosso Plano - Enfermaria / Com Coparticipação Parcial">Nosso
+                                                Plano - Enfermaria / Com Coparticipação Parcial</option>
+                                            <option value="Nosso Plano - Apartamento / Com coparticipação">Nosso Plano -
+                                                Apartamento / Com coparticipação</option>
+                                            <option value="Nosso Plano - Apartamento / Com Coparticipação Parcial">Nosso
+                                                Plano - Apartamento / Com Coparticipação Parcial</option>
+                                            <option value="Ambulatorial - Sem acomodação / Com coparticipação">
+                                                Ambulatorial - Sem acomodação / Com coparticipação</option>
+                                            <option value="Ambulatorial - Sem acomodação / Com Coparticipação Parcial">
+                                                Ambulatorial - Sem acomodação / Com Coparticipação Parcial</option>
+                                            <option value="Mix - Enfermaria / Com Coparticipação Parcial">Mix -
+                                                Enfermaria / Com Coparticipação Parcial</option>
+                                            <option value="Mix - Apartamento / Com Coparticipação Parcial">Mix -
+                                                Apartamento / Com Coparticipação Parcial</option>
+                                            <option value="Nosso Médico RMSP - Enfermaria / Com coparticipação">Nosso
+                                                Médico RMSP - Enfermaria / Com coparticipação</option>
+                                            <option value="Nosso Médico RMSP - Enfermaria / Com Coparticipação Parcial">
+                                                Nosso Médico RMSP - Enfermaria / Com Coparticipação Parcial</option>
+                                            <option value="Smart UP Ambulatorial - Sem acomodação / Com coparticipação">
+                                                Smart UP Ambulatorial - Sem acomodação / Com coparticipação</option>
+                                            <option
+                                                value="Smart UP Ambulatorial - Sem acomodação / Com Coparticipação Parcial">
+                                                Smart UP Ambulatorial - Sem acomodação / Com Coparticipação Parcial
+                                            </option>
+                                            <option value="Smart UP Enf - Enfermaria / Com coparticipação">Smart UP Enf
+                                                - Enfermaria / Com coparticipação</option>
+                                            <option value="Smart UP Enf - Enfermaria / Com Coparticipação Parcial">Smart
+                                                UP Enf - Enfermaria / Com Coparticipação Parcial</option>
+                                            <option value="Smart UP Apt - Apartamento / Com coparticipação">Smart UP Apt
+                                                - Apartamento / Com coparticipação</option>
+                                            <option value="Smart UP Apt - Apartamento / Com Coparticipação Parcial">
+                                                Smart UP Apt - Apartamento / Com Coparticipação Parcial</option>
+                                            <option value="Smart 200 SP - Enfermaria / Com Coparticipação Total">Smart
+                                                200 SP - Enfermaria / Com Coparticipação Total</option>
+                                            <option value="Smart 200 SP - Enfermaria / Com Coparticipação Parcial">Smart
+                                                200 SP - Enfermaria / Com Coparticipação Parcial</option>
+                                            <option value="Smart Rio - Enfermaria / Com Coparticipação Total">Smart Rio
+                                                - Enfermaria / Com Coparticipação Total</option>
+                                            <option value="Smart Rio - Enfermaria / Com Coparticipação Parcial">Smart
+                                                Rio - Enfermaria / Com Coparticipação Parcial</option>
+                                            <option
+                                                value="Smart Rio - Ambulatorial Sem acomodação / Com Coparticipação Total">
+                                                Smart Rio - Ambulatorial Sem acomodação / Com Coparticipação Total
+                                            </option>
+                                            <option value="Smart Rio - Apartamento / Com Coparticipação Total">Smart Rio
+                                                - Apartamento / Com Coparticipação Total</option>
+                                        </optgroup>
+                                        <optgroup label="Affix">
+                                            <option value="Affix - Smart 200 SP Enfermaria / Com Coparticipação Total">
+                                                Affix - Smart 200 SP Enfermaria / Com Coparticipação Total</option>
+                                            <option
+                                                value="Affix - Smart 200 SP Enfermaria / Com Coparticipação Parcial">
+                                                Affix - Smart 200 SP Enfermaria / Com Coparticipação Parcial</option>
+                                            <option value="Affix - Smart 200 UP Enfermaria / Com Coparticipação Total">
+                                                Affix - Smart 200 UP Enfermaria / Com Coparticipação Total</option>
+                                            <option
+                                                value="Affix - Smart 200 UP Enfermaria / Com Coparticipação Parcial">
+                                                Affix - Smart 200 UP Enfermaria / Com Coparticipação Parcial</option>
+                                            <option value="Affix - Smart 300 Enfermaria / Com Coparticipação Total">
+                                                Affix - Smart 300 Enfermaria / Com Coparticipação Total</option>
+                                            <option value="Affix - Smart 300 Enfermaria / Com Coparticipação Parcial">
+                                                Affix - Smart 300 Enfermaria / Com Coparticipação Parcial</option>
+                                            <option value="Affix - Smart 400 Enfermaria / Com Coparticipação Total">
+                                                Affix - Smart 400 Enfermaria / Com Coparticipação Total</option>
+                                            <option value="Affix - Smart 400 Enfermaria / Com Coparticipação Parcial">
+                                                Affix - Smart 400 Enfermaria / Com Coparticipação Parcial</option>
+                                            <option value="Affix - Smart 400 Apartamento / Com Coparticipação Total">
+                                                Affix - Smart 400 Apartamento / Com Coparticipação Total</option>
+                                            <option value="Affix - Smart 400 Apartamento / Com Coparticipação Parcial">
+                                                Affix - Smart 400 Apartamento / Com Coparticipação Parcial</option>
+                                            <option value="Affix - Smart 500 Enfermaria / Com Coparticipação Total">
+                                                Affix - Smart 500 Enfermaria / Com Coparticipação Total</option>
+                                            <option value="Affix - Smart 500 Enfermaria / Com Coparticipação Parcial">
+                                                Affix - Smart 500 Enfermaria / Com Coparticipação Parcial</option>
+                                            <option value="Affix - Smart 500 Apartamento / Com Coparticipação Total">
+                                                Affix - Smart 500 Apartamento / Com Coparticipação Total</option>
+                                            <option value="Affix - Smart 500 Apartamento / Com Coparticipação Parcial">
+                                                Affix - Smart 500 Apartamento / Com Coparticipação Parcial</option>
+                                            <option value="Affix - Smart 600 Enfermaria / Com Coparticipação Total">
+                                                Affix - Smart 600 Enfermaria / Com Coparticipação Total</option>
+                                            <option value="Affix - Smart 600 Enfermaria / Com Coparticipação Parcial">
+                                                Affix - Smart 600 Enfermaria / Com Coparticipação Parcial</option>
+                                            <option value="Affix - Smart 600 Apartamento / Com Coparticipação Total">
+                                                Affix - Smart 600 Apartamento / Com Coparticipação Total</option>
+                                            <option value="Affix - Smart 600 Apartamento / Com Coparticipação Parcial">
+                                                Affix - Smart 600 Apartamento / Com Coparticipação Parcial</option>
+                                            <option value="Affix - Smart 700 Enfermaria / Com Coparticipação Total">
+                                                Affix - Smart 700 Enfermaria / Com Coparticipação Total</option>
+                                            <option value="Affix - Smart 500 Enfermaria / Com Coparticipação Parcial">
+                                                Affix - Smart 500 Enfermaria / Com Coparticipação Parcial</option>
+                                            <option value="Affix - Smart 700 Apartamento / Com Coparticipação Total">
+                                                Affix - Smart 700 Apartamento / Com Coparticipação Total</option>
+                                            <option value="Affix - Smart 700 Apartamento / Com Coparticipação Parcial">
+                                                Affix - Smart 700 Apartamento / Com Coparticipação Parcial</option>
+                                            <option
+                                                value="Affix - Premium 900.1 CARE Apartamento / Com Coparticipação Total">
+                                                Affix - Premium 900.1 CARE Apartamento / Com Coparticipação Total
+                                            </option>
+                                            <option
+                                                value="Affix - Premium 900.1 CARE Apartamento / Com Coparticipação Parcial">
+                                                Affix - Premium 900.1 CARE Apartamento / Com Coparticipação Parcial
+                                            </option>
+                                            <option value="Affix - Nosso Médico Enfermaria / Com Coparticipação Total">
+                                                Affix - Nosso Médico Enfermaria / Com Coparticipação Total</option>
+                                            <option
+                                                value="Affix - Nosso Médico Enfermaria / Com Coparticipação Parcial">
+                                                Affix - Nosso Médico Enfermaria / Com Coparticipação Parcial</option>
+                                        </optgroup>
+                                        <optgroup label="Alter">
+                                            <option
+                                                value="Alter Aberta - Smart 150 ABC Enfermaria / Com Coparticipação Total">
+                                                Alter Aberta - Smart 150 ABC Enfermaria / Com Coparticipação Total
+                                            </option>
+                                            <option
+                                                value="Alter Aberta - Smart 150 ABC Enfermaria / Com Coparticipação Parcial">
+                                                Alter Aberta - Smart 150 ABC Enfermaria / Com Coparticipação Parcial
+                                            </option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 Jundiai Enfermaria / Com Coparticipação Total">
+                                                Alter Aberta - Smart 200 Jundiai Enfermaria / Com Coparticipação Total
+                                            </option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 Jundiai Enfermaria / Com Coparticipação Parcial">
+                                                Alter Aberta - Smart 200 Jundiai Enfermaria / Com Coparticipação Parcial
+                                            </option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 Sorocaba Enfermaria / Com Coparticipação Total">
+                                                Alter Aberta - Smart 200 Sorocaba Enfermaria / Com Coparticipação Total
+                                            </option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 Sorocaba Enfermaria / Com Coparticipação Parcial">
+                                                Alter Aberta - Smart 200 Sorocaba Enfermaria / Com Coparticipação
+                                                Parcial</option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 ABC Enfermaria / Com Coparticipação Total">
+                                                Alter Aberta - Smart 200 ABC Enfermaria / Com Coparticipação Total
+                                            </option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 ABC Enfermaria / Com Coparticipação Parcial">
+                                                Alter Aberta - Smart 200 ABC Enfermaria / Com Coparticipação Parcial
+                                            </option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 SP Enfermaria / Com Coparticipação Total">
+                                                Alter Aberta - Smart 200 SP Enfermaria / Com Coparticipação Total
+                                            </option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 SP Enfermaria / Com Coparticipação Parcial">
+                                                Alter Aberta - Smart 200 SP Enfermaria / Com Coparticipação Parcial
+                                            </option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 Alto Tiete Enfermaria / Com Coparticipação Total">
+                                                Alter Aberta - Smart 200 Alto Tiete Enfermaria / Com Coparticipação
+                                                Total</option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 Alto Tiete Enfermaria / Com Coparticipação Parcial">
+                                                Alter Aberta - Smart 200 Alto Tiete Enfermaria / Com Coparticipação
+                                                Parcial</option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 Americana Enfermaria / Com Coparticipação Total">
+                                                Alter Aberta - Smart 200 Americana Enfermaria / Com Coparticipação Total
+                                            </option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 Americana Enfermaria / Com Coparticipação Parcial">
+                                                Alter Aberta - Smart 200 Americana Enfermaria / Com Coparticipação
+                                                Parcial</option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 Campinas Enfermaria / Com Coparticipação Total">
+                                                Alter Aberta - Smart 200 Campinas Enfermaria / Com Coparticipação Total
+                                            </option>
+                                            <option
+                                                value="Alter Aberta - Smart 200 Campinas Enfermaria / Com Coparticipação Parcial">
+                                                Alter Aberta - Smart 200 Campinas Enfermaria / Com Coparticipação
+                                                Parcial</option>
+                                            <option value="Alter - Smart 200 SP Enfermaria / Com Coparticipação Total">
+                                                Alter - Smart 200 SP Enfermaria / Com Coparticipação Total</option>
+                                            <option
+                                                value="Alter - Smart 200 SP Enfermaria / Com Coparticipação Parcial">
+                                                Alter - Smart 200 SP Enfermaria / Com Coparticipação Parcial</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Valor do Plano</label>
+                                    <input type="number" step="0.01" name="valorPlano" placeholder="R$ 0,00" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Vencimento</label>
+                                    <input type="date" name="vencimentoPlano" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group full-width" style="margin-top: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.5rem; background: #f8fafc;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                    <h3 class="form-section-title" style="margin: 0; padding: 0; border: none; font-size: 1.1rem;">Dados dos Dependentes</h3>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="btn-add-dependente" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem;">
+                                        <span class="material-symbols-outlined" style="font-size: 1.2rem;">person_add</span> Adicionar Dependente
+                                    </button>
+                                </div>
+                                <div id="dependentes-container">
+                                    <!-- Dependentes serão inseridos aqui -->
+                                </div>
+                            </div>
+
+                            <div class="form-grid">
+                                <div class="form-group full-width">
+                                    <textarea name="observacao" rows="3"
+                                        placeholder="Detalhes adicionais..."></textarea>
+                                </div>
+                            </div>
+
+                            <h3 class="form-section-title">Pagamentos e Vencimentos</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>1º Pagamento (Valor)</label>
+                                    <input type="number" step="0.01" name="pagamento1" placeholder="R$ 0,00">
+                                </div>
+                                <div class="form-group">
+                                    <label>1º Vencimento</label>
+                                    <input type="date" name="vencimento1">
+                                </div>
+                                <div class="form-group">
+                                    <label>2º Pagamento (Valor)</label>
+                                    <input type="number" step="0.01" name="pagamento2" placeholder="R$ 0,00">
+                                </div>
+                                <div class="form-group">
+                                    <label>2º Vencimento</label>
+                                    <input type="date" name="vencimento2">
+                                </div>
+                                <div class="form-group">
+                                    <label>3º Pagamento (Valor)</label>
+                                    <input type="number" step="0.01" name="pagamento3" placeholder="R$ 0,00">
+                                </div>
+                                <div class="form-group">
+                                    <label>3º Vencimento</label>
+                                    <input type="date" name="vencimento3">
+                                </div>
+                                <div class="form-group full-width" style="margin-top: 1rem;">
+                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500; color: var(--primary);">
+                                        <input type="checkbox" name="syncGoogleCalendar" id="syncGoogleCalendar" style="width: 20px; height: 20px; margin: 0;">
+                                        <span class="material-symbols-outlined" style="font-size: 20px; color: #4285F4;">calendar_today</span>
+                                        Sincronizar com Google Calendar (Lembrete 1 dia antes)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" id="btn-cancel-sale">Cancelar</button>
+                                <button type="submit" class="btn btn-primary">Salvar Venda</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Admin Login View -->
+                <section id="view-login-admin" class="view-section">
+                    <div style="display: flex; justify-content: center; align-items: center; min-height: 70vh;">
+                        <div class="card login-card" style="max-width: 400px; width: 100%; padding: 2.5rem; border-radius: 20px; text-align: center;">
+                            <div style="margin-bottom: 2rem;">
+                                <img src="assets/logo.png" alt="Amels" style="max-height: 80px; margin-bottom: 1rem;">
+                                <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Área Restrita</h1>
+                                <p style="color: var(--text-muted); font-size: 0.9rem;">Acesse com sua conta de administrador para gerenciar a equipe.</p>
+                            </div>
+
+                            <form id="admin-login-form" style="text-align: left;">
+                                <div class="form-group" style="margin-bottom: 1.25rem;">
+                                    <label>E-mail</label>
+                                    <div style="position: relative;">
+                                        <span class="material-symbols-outlined" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 20px;">mail</span>
+                                        <input type="email" id="login-email" required placeholder="admin@amels.com" style="padding-left: 40px; width: 100%;">
+                                    </div>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 2rem;">
+                                    <label>Senha</label>
+                                    <div style="position: relative;">
+                                        <span class="material-symbols-outlined" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 20px;">key</span>
+                                        <input type="password" id="login-password" required placeholder="••••••••" style="padding-left: 40px; width: 100%;">
+                                    </div>
+                                </div>
+                                <div id="login-error" style="color: var(--danger); font-size: 0.85rem; margin-bottom: 1rem; display: none; text-align: center;">
+                                    E-mail ou senha incorretos.
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; border-radius: 12px;">
+                                    Entrar no Painel
+                                </button>
+                                
+                                <div class="login-divider">
+                                    <span>ou</span>
+                                </div>
+
+                                <button type="button" id="btn-google-login" class="btn btn-google" style="width: 100%; justify-content: center; padding: 12px; border-radius: 12px;">
+                                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style="width: 18px; margin-right: 10px;">
+                                    Entrar com Google
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Users Management View -->
+                <section id="view-users" class="view-section">
+                    <div class="view-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h1>Gestão de Usuários</h1>
+                            <p>Administre a equipe de vendedores e administradores</p>
+                        </div>
+                        <button class="btn btn-primary" id="btn-open-user-modal" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span class="material-symbols-outlined">person_add</span>
+                            Novo Usuário
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table" id="users-table">
+                                <thead>
+                                    <tr>
+                                        <th>Foto</th>
+                                        <th>Nome</th>
+                                        <th>E-mail</th>
+                                        <th>CPF</th>
+                                        <th>Cod Vendedor</th>
+                                        <th>Tipo de Acesso</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Cadastro de Usuário -->
+    <div id="modal-user" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Cadastrar Novo Usuário</h2>
+                <button class="modal-close" id="btn-close-user-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="new-user-form" class="modern-form">
+                    <input type="hidden" name="id" id="edit-user-id">
+                    <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; align-items: center; background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                        <div style="width: 80px; height: 80px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" id="photo-preview">
+                            <span class="material-symbols-outlined" style="font-size: 40px; color: #94a3b8;">person</span>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Foto de Perfil</label>
+                            <input type="file" name="foto" id="user-photo-input" accept="image/*" style="font-size: 0.85rem;">
+                            <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.4rem;">Formatos aceitos: JPG, PNG. Tamanho máx: 1MB</p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>Nome Completo</label>
+                            <input type="text" name="name" required placeholder="Ex: Maria Oliveira">
+                        </div>
+                        <div class="form-group">
+                            <label>CPF</label>
+                            <input type="text" name="cpf" class="cpf-mask" required placeholder="000.000.000-00">
+                        </div>
+                        <div class="form-group">
+                            <label>E-mail</label>
+                            <input type="email" name="email" required placeholder="maria@exemplo.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Senha de Acesso</label>
+                            <input type="password" name="password" required placeholder="********">
+                        </div>
+                        <div class="form-group">
+                            <label>Cod Vendedor</label>
+                            <input type="text" name="cod" required placeholder="Ex: 005">
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de Acesso</label>
+                            <select name="role" required style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                <option value="Vendedor">Vendedor</option>
+                                <option value="Administrador">Administrador</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions" style="margin-top: 2rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem;">
+                        <button type="button" class="btn btn-secondary" id="btn-cancel-user-modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Usuário</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Visualizar Venda -->
+    <div id="modal-visualizar" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Detalhes da Venda</h2>
+                <button class="modal-close" id="btn-close-modal">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-details-content">
+                <!-- Data will be populated here by JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-close-modal-footer">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK Setup -->
+    <script type="module" src="js/services/firebaseConfig.js"></script>
+    <script type="module" src="js/services/dataService.js"></script>
+
+    <!-- Application Scripts -->
+    <script type="module" src="js/app.js?v=2.1"></script>
+</body>
+
+</html>

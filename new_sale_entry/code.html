@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SalesFlow Pro - Add New Sale</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#d3e4fe",
+                        "on-surface-variant": "#45464d",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "surface-tint": "#565e74",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#2170e4",
+                        "surface-dim": "#cbdbf5",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#76777d",
+                        "primary-fixed-dim": "#bec6e0",
+                        "surface-container": "#e5eeff",
+                        "on-error": "#ffffff",
+                        "on-primary-container": "#7c839b",
+                        "primary": "#000000",
+                        "inverse-surface": "#213145",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "surface-container-low": "#eff4ff",
+                        "primary-container": "#131b2e",
+                        "surface-container-high": "#dce9ff",
+                        "on-secondary-fixed": "#001a42",
+                        "tertiary-container": "#002113",
+                        "on-secondary-fixed-variant": "#004395",
+                        "surface": "#f8f9ff",
+                        "outline-variant": "#c6c6cd",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-tertiary-container": "#009668",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#dae2fd",
+                        "on-surface": "#0b1c30",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-tertiary-fixed": "#002113",
+                        "inverse-primary": "#bec6e0",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "secondary": "#0058be",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#000000",
+                        "error-container": "#ffdad6",
+                        "surface-bright": "#f8f9ff",
+                        "on-background": "#0b1c30",
+                        "on-primary-fixed": "#131b2e",
+                        "background": "#f8f9ff",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-secondary-container": "#fefcff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "max_width": "1440px",
+                        "lg": "24px",
+                        "base": "4px",
+                        "sm": "8px",
+                        "gutter": "24px",
+                        "xl": "32px",
+                        "margin": "32px",
+                        "xs": "4px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "data-mono": ["Inter"],
+                        "h2": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "h1": ["Inter"],
+                        "h3": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "data-mono": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "h2": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "600"}],
+                        "h1": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "h3": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9ff; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- Sidebar Section -->
+<aside class="fixed left-0 top-0 h-full w-[280px] border-r border-slate-200 bg-slate-50 flex flex-col gap-1 p-4 h-full">
+<div class="mb-8 px-3">
+<h1 class="text-lg font-black tracking-tight text-slate-900">SalesFlow Pro</h1>
+<p class="text-xs font-medium text-slate-500 uppercase tracking-widest">Enterprise Finance</p>
+</div>
+<nav class="flex-1 flex flex-col gap-1">
+<a class="text-slate-600 px-3 py-2 flex items-center gap-3 hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 ease-in-out font-medium text-sm" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="bg-white text-blue-600 shadow-sm border border-slate-200 rounded-md px-3 py-2 flex items-center gap-3 transition-all duration-200 ease-in-out font-medium text-sm" href="#">
+<span class="material-symbols-outlined">table_chart</span>
+                Sales Ledger
+            </a>
+<a class="text-slate-600 px-3 py-2 flex items-center gap-3 hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 ease-in-out font-medium text-sm" href="#">
+<span class="material-symbols-outlined">payments</span>
+                Payments
+            </a>
+<a class="text-slate-600 px-3 py-2 flex items-center gap-3 hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 ease-in-out font-medium text-sm" href="#">
+<span class="material-symbols-outlined">group</span>
+                Customer Base
+            </a>
+<a class="text-slate-600 px-3 py-2 flex items-center gap-3 hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 ease-in-out font-medium text-sm" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                Reports
+            </a>
+</nav>
+<div class="mt-auto border-t border-slate-200 pt-4 flex flex-col gap-1">
+<a class="text-slate-600 px-3 py-2 flex items-center gap-3 hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 ease-in-out font-medium text-sm" href="#">
+<span class="material-symbols-outlined">contact_support</span>
+                Support
+            </a>
+<a class="text-slate-600 px-3 py-2 flex items-center gap-3 hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 ease-in-out font-medium text-sm" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</div>
+</aside>
+<!-- Header Section -->
+<header class="fixed top-0 w-full z-40 border-b border-slate-200 bg-white/80 backdrop-blur-md flex justify-between items-center h-[72px] px-6 ml-[280px]" style="width: calc(100% - 280px);">
+<div class="flex items-center gap-4">
+<a class="flex items-center text-slate-500 hover:text-slate-900 transition-colors" href="#">
+<span class="material-symbols-outlined">arrow_back</span>
+</a>
+<h2 class="text-xl font-bold tracking-tighter text-slate-900">Add New Sale</h2>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex gap-2">
+<button class="p-2 text-slate-500 hover:bg-slate-50 transition-colors duration-200 rounded-lg">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-50 transition-colors duration-200 rounded-lg">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+</div>
+<div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden">
+<img alt="User profile" data-alt="Professional headshot of a financial manager in a bright office setting with soft natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUKkXEn8PDLibLuGd73pTpGTBXzo7cG4TXxVXVPKZZxr2iRWZczlQsncD2IXyhoKCRwZGpTsRkKCCwEujo9k2h7fi0GI2nrrppFbq2g76TNpanQE4B_VmtK-2hnp18rZiSV3RCKmcV8xXSccITzhi2XoaebNJDyDaKaf4Gc3TwOqd63DbnMn6q8IjHCIaVWL6yM8JQjbwvqtgV7_DNi0dexS-aYKlHlUyIqEzEKnCElRKCmg9nVSjP1pXc36zgTRGjvtrbi7SDa7M"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-[280px] pt-[72px] min-h-screen">
+<div class="max-w-[1440px] mx-auto p-gutter">
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Left Column: Form -->
+<div class="col-span-8 flex flex-col gap-6">
+<!-- Section 1: Customer Information -->
+<div class="bg-white border border-slate-200 rounded-lg p-xl">
+<div class="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4">
+<span class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-secondary font-bold text-sm">01</span>
+<h3 class="font-h3 text-on-surface">Customer Details</h3>
+</div>
+<div class="grid grid-cols-2 gap-md">
+<div class="col-span-2">
+<label class="block font-label-md text-on-surface-variant mb-base">Full Name</label>
+<input class="w-full border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all" placeholder="e.g. John Alexander Smith" type="text"/>
+</div>
+<div>
+<label class="block font-label-md text-on-surface-variant mb-base">CPF</label>
+<input class="w-full border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all" placeholder="000.000.000-00" type="text"/>
+</div>
+<div>
+<label class="block font-label-md text-on-surface-variant mb-base">State</label>
+<select class="w-full border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all appearance-none bg-white">
+<option value="">Select State</option>
+<option value="SP">São Paulo</option>
+<option value="RJ">Rio de Janeiro</option>
+<option value="MG">Minas Gerais</option>
+</select>
+</div>
+<div>
+<label class="block font-label-md text-on-surface-variant mb-base">Email Address</label>
+<input class="w-full border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all" placeholder="john@enterprise.com" type="email"/>
+</div>
+<div>
+<label class="block font-label-md text-on-surface-variant mb-base">Phone Number</label>
+<input class="w-full border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all" placeholder="+55 (00) 00000-0000" type="tel"/>
+</div>
+</div>
+</div>
+<!-- Section 2: Sale Information -->
+<div class="bg-white border border-slate-200 rounded-lg p-xl">
+<div class="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4">
+<span class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-secondary font-bold text-sm">02</span>
+<h3 class="font-h3 text-on-surface">Sale Parameters</h3>
+</div>
+<div class="grid grid-cols-2 gap-md">
+<div>
+<label class="block font-label-md text-on-surface-variant mb-base">Date of Sale</label>
+<div class="relative">
+<input class="w-full border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all" type="date"/>
+</div>
+</div>
+<div>
+<label class="block font-label-md text-on-surface-variant mb-base">Transaction Status</label>
+<select class="w-full border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all appearance-none bg-white">
+<option value="pending">Pending Review</option>
+<option value="paid">Paid &amp; Confirmed</option>
+<option value="overdue">Overdue</option>
+</select>
+</div>
+<div class="col-span-2">
+<label class="block font-label-md text-on-surface-variant mb-base">Observations</label>
+<textarea class="w-full border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all" placeholder="Add any specific details about the negotiation..." rows="3"></textarea>
+</div>
+</div>
+</div>
+<!-- Section 3: Payment Installments -->
+<div class="bg-white border border-slate-200 rounded-lg p-xl">
+<div class="flex items-center gap-2 mb-6 border-b border-slate-100 pb-4">
+<span class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-secondary font-bold text-sm">03</span>
+<h3 class="font-h3 text-on-surface">Payment Schedule</h3>
+</div>
+<div class="space-y-4">
+<!-- Installment 1 -->
+<div class="grid grid-cols-12 gap-md items-end bg-slate-50 p-md rounded-lg border border-slate-100">
+<div class="col-span-1 flex items-center justify-center">
+<span class="font-label-sm text-slate-400">1st</span>
+</div>
+<div class="col-span-6">
+<label class="block font-label-sm text-on-surface-variant mb-xs">Amount (USD)</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-data-mono">$</span>
+<input class="w-full border border-outline-variant rounded-lg pl-8 pr-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all font-data-mono" placeholder="0.00" step="0.01" type="number"/>
+</div>
+</div>
+<div class="col-span-5">
+<label class="block font-label-sm text-on-surface-variant mb-xs">Due Date</label>
+<input class="w-full border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all" type="date"/>
+</div>
+</div>
+<!-- Installment 2 -->
+<div class="grid grid-cols-12 gap-md items-end bg-slate-50 p-md rounded-lg border border-slate-100">
+<div class="col-span-1 flex items-center justify-center">
+<span class="font-label-sm text-slate-400">2nd</span>
+</div>
+<div class="col-span-6">
+<label class="block font-label-sm text-on-surface-variant mb-xs">Amount (USD)</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-data-mono">$</span>
+<input class="w-full border border-outline-variant rounded-lg pl-8 pr-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all font-data-mono" placeholder="0.00" step="0.01" type="number"/>
+</div>
+</div>
+<div class="col-span-5">
+<label class="block font-label-sm text-on-surface-variant mb-xs">Due Date</label>
+<input class="w-full border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all" type="date"/>
+</div>
+</div>
+<!-- Installment 3 -->
+<div class="grid grid-cols-12 gap-md items-end bg-slate-50 p-md rounded-lg border border-slate-100">
+<div class="col-span-1 flex items-center justify-center">
+<span class="font-label-sm text-slate-400">3rd</span>
+</div>
+<div class="col-span-6">
+<label class="block font-label-sm text-on-surface-variant mb-xs">Amount (USD)</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-data-mono">$</span>
+<input class="w-full border border-outline-variant rounded-lg pl-8 pr-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all font-data-mono" placeholder="0.00" step="0.01" type="number"/>
+</div>
+</div>
+<div class="col-span-5">
+<label class="block font-label-sm text-on-surface-variant mb-xs">Due Date</label>
+<input class="w-full border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all" type="date"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Summary & Actions -->
+<div class="col-span-4 flex flex-col gap-6">
+<!-- Preview Card -->
+<div class="bg-primary-container text-on-secondary-container rounded-lg p-xl shadow-lg relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-10">
+<span class="material-symbols-outlined text-[120px]">account_balance_wallet</span>
+</div>
+<h4 class="font-label-sm opacity-70 uppercase tracking-widest mb-md">Total Sale Value</h4>
+<div class="text-4xl font-h1 mb-lg">$ 0.00</div>
+<div class="space-y-3 relative z-10">
+<div class="flex justify-between text-body-sm opacity-80">
+<span>Installments</span>
+<span>3 payments</span>
+</div>
+<div class="flex justify-between text-body-sm opacity-80">
+<span>Status</span>
+<span class="bg-amber-500/20 text-amber-200 px-2 rounded-full text-[10px] font-bold uppercase">Pending Validation</span>
+</div>
+</div>
+</div>
+<!-- Actions -->
+<div class="bg-white border border-slate-200 rounded-lg p-xl sticky top-[96px]">
+<h4 class="font-h3 mb-md">Finalize Entry</h4>
+<p class="text-body-sm text-on-surface-variant mb-xl">Review all fields carefully before submitting. Sales cannot be deleted once finalized in the ledger.</p>
+<div class="flex flex-col gap-3">
+<button class="w-full bg-secondary text-on-secondary font-label-md py-md rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-md">check_circle</span>
+                                Register Sale
+                            </button>
+<button class="w-full bg-white border border-outline-variant text-on-surface font-label-md py-md rounded-lg hover:bg-slate-50 active:scale-95 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-md">save</span>
+                                Save as Draft
+                            </button>
+<button class="w-full text-error font-label-md py-md hover:bg-error-container/20 rounded-lg transition-all">
+                                Discard Sale
+                            </button>
+</div>
+<div class="mt-xl pt-xl border-t border-slate-100">
+<div class="flex items-center gap-3 text-on-surface-variant">
+<span class="material-symbols-outlined text-blue-500">verified_user</span>
+<span class="text-xs">Secure financial entry system encryption active.</span>
+</div>
+</div>
+</div>
+<!-- Contextual Help -->
+<div class="p-lg bg-surface-container-high rounded-lg border border-blue-100">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary">info</span>
+<div>
+<h5 class="font-label-md text-secondary">Pro Tip</h5>
+<p class="text-[12px] text-slate-600 mt-1">Entering the CPF will automatically fetch historical data if the customer exists in our records.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

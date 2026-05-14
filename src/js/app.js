@@ -1,0 +1,703 @@
+import { listarUsuarios, getCurrentUser, login, loginComGoogle, cadastrarUsuario, buscarUsuarioPorId, atualizarUsuario, excluirUsuario, setCurrentUser } from './services/authService.js';
+import { carregarVendas, salvarVenda, getVenda, excluirVenda, toggleStatusVenda, atualizarEstatisticas } from './services/dataService.js';
+import { createPaymentEvent, initGoogleApi } from './services/googleCalendarService.js';
+
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log("Sistema CRM Amels - Inicializando...");
+
+    // Inicialização Crítica: Listeners Globais primeiro para garantir funcionalidade da UI
+    try {
+        setupGlobalEventListeners();
+    } catch (e) { console.error("Erro nos listeners:", e); }
+
+    // Inicializa API do Google em segundo plano
+    initGoogleApi().catch(e => console.error("Erro ao inicializar Google API:", e));
+
+    try {
+        setupLocationAPI();
+    } catch (e) { console.error("Erro na API de Localização:", e); }
+
+    // 1. Verificação de Autenticação
+    const isUserLogged = localStorage.getItem('crm_current_user');
+    if (!isUserLogged) {
+        if (typeof exibirTelaLogin === 'function') {
+            exibirTelaLogin();
+            setupLoginHandler();
+        }
+        document.body.classList.remove('loading-state');
+        return;
+    }
+
+    // Se chegou aqui, está logado. Mostra o dashboard.
+    document.getElementById('view-dashboard').classList.add('active');
+
+    try {
+        const user = getCurrentUser();
+        if (user) {
+            const elName = document.getElementById('current-user-name');
+            const elRole = document.getElementById('current-user-role');
+            if (elName) elName.textContent = user.name;
+            if (elRole) elRole.textContent = user.role;
+            
+            const headerAvatar = document.getElementById('user-profile-trigger');
+            if (headerAvatar && user.foto) {
+                headerAvatar.innerHTML = `<img src="${user.foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            }
+        }
+    } catch (e) { console.error("Erro ao carregar dados do usuário:", e); }
+
+    // 2. Inicialização de Componentes
+    try {
+        updateSellerSelect();
+        renderUsersTable();
+        setupAdminFilters();
+        renderUserSwitcher();
+    } catch (e) { console.error("Erro ao carregar componentes:", e); }
+
+    // 4. Carregar Dados Iniciais
+    try {
+        await atualizarEstatisticas();
+    } catch (e) { console.error("Erro ao carregar estatísticas:", e); }
+
+    // Finalização: Revelar o sistema
+    document.body.classList.remove('loading-state');
+});
+
+function resetNewSaleForm() {
+    const form = document.getElementById('new-sale-form');
+    if (form) form.reset();
+    document.getElementById('venda-id').value = '';
+    document.getElementById('form-title').innerText = 'Registrar Nova Venda';
+    
+    // Limpar dependentes
+    const container = document.getElementById('dependentes-container');
+    if (container) container.innerHTML = '';
+    
+    // Restaurar papéis padrões
+    const titularRadio = document.querySelector('input[name="papelCliente"][value="Titular"]');
+    if (titularRadio) titularRadio.checked = true;
+
+    const indivRadio = document.querySelector('input[name="tipoContrato"][value="Individual"]');
+    if (indivRadio) indivRadio.checked = true;
+
+    // Pré-selecionar vendedor se houver filtro ativo
+    const sellerSelect = document.getElementById('vendedor-select');
+    if (sellerSelect && window.activeSellerFilter) {
+        sellerSelect.value = window.activeSellerFilter;
+    }
+}
+
+function setupGlobalEventListeners() {
+    // Navegação Sidebar
+    const navItems = document.querySelectorAll('.nav-item[data-target]');
+    const views = document.querySelectorAll('.view-section');
+
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const target = item.dataset.target;
+            const currentUser = getCurrentUser();
+
+            if (target === 'users' && currentUser.role !== 'Administrador') {
+                alert("Acesso restrito para administradores.");
+                return;
+            }
+
+            if (target === 'new-sale') {
+                resetNewSaleForm();
+            }
+
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+            views.forEach(view => view.classList.remove('active'));
+            
+            const targetView = document.getElementById(`view-${target}`);
+            if(targetView) targetView.classList.add('active');
+        });
+    });
+
+    // Botão + Nova Venda (Na lista de vendas)
+    const btnAddSale = document.getElementById('btn-add-sale');
+    if (btnAddSale) {
+        btnAddSale.addEventListener('click', () => {
+            resetNewSaleForm();
+            document.querySelector('.nav-item[data-target="new-sale"]').click();
+        });
+    }
+
+    // Modal Usuários
+    const btnOpenUserModal = document.getElementById('btn-open-user-modal');
+    const modalUser = document.getElementById('modal-user');
+    const newUserForm = document.getElementById('new-user-form');
+
+    if (btnOpenUserModal && modalUser) {
+        btnOpenUserModal.addEventListener('click', () => {
+            console.log("Abrindo modal de usuário...");
+            document.getElementById('edit-user-id').value = '';
+            if (newUserForm) newUserForm.reset();
+            document.getElementById('photo-preview').innerHTML = '<span class="material-symbols-outlined" style="font-size: 40px; color: #94a3b8;">person</span>';
+            window.tempUserPhoto = null;
+            modalUser.classList.add('active');
+        });
+    }
+
+    // Fechar Modal Usuário
+    const btnCloseUser = document.getElementById('btn-close-user-modal');
+    const btnCancelUser = document.getElementById('btn-cancel-user-modal');
+    [btnCloseUser, btnCancelUser].forEach(btn => {
+        if (btn) btn.addEventListener('click', () => modalUser.classList.remove('active'));
+    });
+
+    // Cadastro de Usuário (Submit)
+    if (newUserForm) {
+        newUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(newUserForm);
+            const userData = Object.fromEntries(formData.entries());
+            const userId = document.getElementById('edit-user-id').value;
+
+            if (window.tempUserPhoto) userData.foto = window.tempUserPhoto;
+
+            try {
+                if (userId) {
+                    atualizarUsuario(userId, userData);
+                    alert('Usuário atualizado!');
+                } else {
+                    cadastrarUsuario(userData);
+                    alert('Usuário cadastrado!');
+                }
+                modalUser.classList.remove('active');
+                renderUsersTable();
+                updateSellerSelect();
+                renderUserSwitcher();
+            } catch (err) {
+                alert("Erro ao salvar: " + err.message);
+            }
+        });
+    }
+    // Cadastro de Venda (Submit)
+    const saleForm = document.getElementById('new-sale-form');
+    if (saleForm) {
+        saleForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log("Salvando venda...");
+            
+            const formData = new FormData(saleForm);
+            const vendaData = Object.fromEntries(formData.entries());
+            const currentUser = getCurrentUser();
+
+            // Garantia de vendedor
+            if (currentUser.role === 'Vendedor') {
+                vendaData.vendedor = currentUser.name;
+            } else if (!vendaData.vendedor) {
+                // Se for admin e não escolheu, assume ele mesmo ou erro
+                vendaData.vendedor = currentUser.name;
+            }
+
+            // Processar dependentes (Coletando direto das linhas para pegar os radios corretamente)
+            const dependentes = [];
+            const depRows = document.querySelectorAll('.dependent-row');
+            
+            depRows.forEach(row => {
+                const nome = row.querySelector('[name="dependenteNome[]"]').value;
+                const nasc = row.querySelector('[name="dependenteNascimento[]"]').value;
+                const cpf = row.querySelector('[name="dependenteCpf[]"]').value;
+                const papel = row.querySelector('input[type="radio"]:checked')?.value || 'Titular';
+                
+                if (nome) {
+                    dependentes.push({
+                        nome,
+                        dataNascimento: nasc,
+                        cpf,
+                        papel
+                    });
+                }
+            });
+            vendaData.dependentes = dependentes;
+
+            try {
+                await salvarVenda(vendaData);
+                
+                // --- Integração com Google Calendar ---
+                if (vendaData.syncGoogleCalendar === 'on') {
+                    console.log("Iniciando sincronização com Google Calendar...");
+                    const pagamentos = [
+                        { valor: vendaData.pagamento1, data: vendaData.vencimento1, num: 1 },
+                        { valor: vendaData.pagamento2, data: vendaData.vencimento2, num: 2 },
+                        { valor: vendaData.pagamento3, data: vendaData.vencimento3, num: 3 }
+                    ];
+
+                    for (const p of pagamentos) {
+                        if (p.data && p.valor) {
+                            try {
+                                await createPaymentEvent(vendaData, p.num, p.data, p.valor);
+                                console.log(`Lembrete da parcela ${p.num} criado no Google Calendar.`);
+                            } catch (calErr) {
+                                console.error(`Erro ao criar lembrete da parcela ${p.num}:`, calErr);
+                            }
+                        }
+                    }
+                }
+                // ---------------------------------------
+
+                // Limpar filtro para que a venda apareça na lista
+                window.activeSellerFilter = null;
+                const fSel = document.getElementById('filter-vendedor');
+                if (fSel) fSel.value = '';
+
+                alert("Venda salva com sucesso!");
+                saleForm.reset();
+                document.getElementById('venda-id').value = '';
+                document.getElementById('dependentes-container').innerHTML = ''; // Limpa dependentes dinâmicos
+                
+                await atualizarEstatisticas();
+                document.querySelector('.nav-item[data-target="sales"]').click();
+            } catch (error) {
+                console.error("Erro ao salvar:", error);
+                alert("Erro ao salvar venda: " + (error.message || "Erro desconhecido"));
+            }
+        });
+    }
+
+    // Adicionar Dependente
+    const btnAddDep = document.getElementById('btn-add-dependente');
+    if (btnAddDep) {
+        btnAddDep.addEventListener('click', () => {
+            addDependenteRow();
+        });
+    }
+
+    // Modal Visualizar Venda (Fechar)
+    const btnCloseView = document.getElementById('btn-close-visualizar');
+    if (btnCloseView) {
+        btnCloseView.addEventListener('click', () => {
+            document.getElementById('modal-visualizar').classList.remove('active');
+        });
+    }
+
+    // Event Delegation para Ações da Tabela de Vendas
+    const allSalesTable = document.getElementById('all-sales-table');
+    if (allSalesTable) {
+        allSalesTable.addEventListener('click', async (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            const id = btn.dataset.id;
+
+            if (btn.classList.contains('action-edit')) {
+                const venda = await getVenda(id);
+                if (venda) {
+                    preencherFormVenda(venda);
+                    document.querySelector('.nav-item[data-target="new-sale"]').click();
+                }
+            } else if (btn.classList.contains('action-delete')) {
+                if (confirm('Excluir venda?')) await excluirVenda(id);
+            } else if (btn.classList.contains('action-status')) {
+                await toggleStatusVenda(id);
+            } else if (btn.classList.contains('action-view')) {
+                const venda = await getVenda(id);
+                if (venda) exibirDetalhesVenda(venda);
+            }
+        });
+    }
+
+    // Troca de Usuário (Trigger)
+    const userTrigger = document.getElementById('user-profile-trigger');
+    const switcherModal = document.getElementById('user-switcher-modal');
+    if (userTrigger && switcherModal) {
+        userTrigger.addEventListener('click', (e) => {
+            e.stopPropagation(); // Evita que o clique no trigger feche o modal imediatamente pelo listener global
+            switcherModal.style.display = switcherModal.style.display === 'none' ? 'block' : 'none';
+        });
+    }
+
+    // Fechar ao clicar fora ou Esc
+    window.addEventListener('click', (e) => {
+        // Fechar switcher de usuário
+        if (switcherModal && switcherModal.style.display === 'block') {
+            if (!switcherModal.contains(e.target) && !userTrigger.contains(e.target)) {
+                switcherModal.style.display = 'none';
+            }
+        }
+
+        // Fechar modais ao clicar no overlay (fundo escuro)
+        if (e.target.classList.contains('modal-overlay')) {
+            e.target.classList.remove('active');
+        }
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            // Fechar switcher de usuário
+            if (switcherModal) switcherModal.style.display = 'none';
+            
+            // Fechar todos os modais ativos
+            document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+        }
+    });
+
+    // Logout
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', () => {
+            localStorage.removeItem('crm_current_user');
+            window.location.reload();
+        });
+    }
+
+    // Theme Toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('theme-dark');
+        });
+    }
+
+    // Foto do Usuário (Preview)
+    const photoInput = document.getElementById('user-photo-input');
+    if (photoInput) {
+        photoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const max = 300;
+                        let w = img.width, h = img.height;
+                        if (w > h) { if (w > max) { h *= max / w; w = max; } }
+                        else { if (h > max) { w *= max / h; h = max; } }
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        window.tempUserPhoto = canvas.toDataURL('image/jpeg', 0.7);
+                        document.getElementById('photo-preview').innerHTML = `<img src="${window.tempUserPhoto}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // --- Mobile Menu Toggle ---
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (mobileMenuBtn && sidebar && overlay) {
+        const toggleMobileMenu = () => {
+            sidebar.classList.toggle('mobile-active');
+            overlay.classList.toggle('active');
+        };
+
+        mobileMenuBtn.onclick = toggleMobileMenu;
+        overlay.onclick = toggleMobileMenu;
+
+        // Fecha o menu ao clicar em um item da navegação no mobile
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (sidebar.classList.contains('mobile-active')) {
+                    toggleMobileMenu();
+                }
+            });
+        });
+    }
+}
+
+// Funções Auxiliares
+function exibirTelaLogin() {
+    const views = document.querySelectorAll('.view-section');
+    const navItems = document.querySelectorAll('.nav-item[data-target]');
+    views.forEach(v => v.classList.remove('active'));
+    navItems.forEach(n => n.classList.remove('active'));
+    
+    document.getElementById('view-login-admin').classList.add('active');
+    document.querySelector('.sidebar').style.display = 'none';
+    document.querySelector('.top-header').style.display = 'none';
+    document.querySelector('.main-content').style.marginLeft = '0';
+}
+
+function setupLoginHandler() {
+    const form = document.getElementById('admin-login-form');
+    if (form) {
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            const res = await login(email, pass);
+            if (res.success) window.location.reload();
+            else {
+                const err = document.getElementById('login-error');
+                err.textContent = res.message;
+                err.style.display = 'block';
+            }
+        };
+    }
+
+    const btnGoogle = document.getElementById('btn-google-login');
+    if (btnGoogle) {
+        btnGoogle.onclick = async () => {
+            const res = await loginComGoogle();
+            if (res.success) window.location.reload();
+            else {
+                const err = document.getElementById('login-error');
+                err.textContent = res.message;
+                err.style.display = 'block';
+            }
+        };
+    }
+}
+
+async function renderUsersTable() {
+    const tbody = document.querySelector('#users-table tbody');
+    if (!tbody) return;
+    const users = await listarUsuarios();
+    tbody.innerHTML = users.map(u => `
+        <tr>
+            <td>${u.foto ? `<img src="${u.foto}" style="width: 32px; height: 32px; border-radius: 50%;">` : '<span class="material-symbols-outlined">person</span>'}</td>
+            <td>${u.name}</td>
+            <td>${u.email}</td>
+            <td>${u.cpf || '---'}</td>
+            <td>${u.cod || '---'}</td>
+            <td><span class="badge badge-${u.role === 'Administrador' ? 'primary' : 'info'}">${u.role}</span></td>
+            <td>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-sm btn-secondary edit-user" data-id="${u.id}"><span class="material-symbols-outlined" style="font-size: 16px;">edit</span></button>
+                    <button class="btn btn-sm btn-danger delete-user" data-id="${u.id}"><span class="material-symbols-outlined" style="font-size: 16px;">delete</span></button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+
+    // Bind Edit/Delete
+    tbody.querySelectorAll('.edit-user').forEach(btn => {
+        btn.onclick = async () => {
+            const u = await buscarUsuarioPorId(btn.dataset.id);
+            if (u) {
+                document.getElementById('edit-user-id').value = u.id;
+                document.querySelector('[name="name"]').value = u.name;
+                document.querySelector('[name="email"]').value = u.email;
+                document.querySelector('[name="cpf"]').value = u.cpf || '';
+                document.querySelector('[name="cod"]').value = u.cod || '';
+                document.querySelector('[name="role"]').value = u.role;
+                document.querySelector('[name="password"]').value = u.password || '';
+                if (u.foto) {
+                    document.getElementById('photo-preview').innerHTML = `<img src="${u.foto}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                    window.tempUserPhoto = u.foto;
+                }
+                document.getElementById('modal-user').classList.add('active');
+            }
+        };
+    });
+
+    tbody.querySelectorAll('.delete-user').forEach(btn => {
+        btn.onclick = async () => {
+            if (confirm("Excluir usuário?")) {
+                await excluirUsuario(btn.dataset.id);
+                renderUsersTable();
+            }
+        };
+    });
+}
+
+async function updateSellerSelect() {
+    const sel = document.getElementById('vendedor-select');
+    const fSel = document.getElementById('filter-vendedor');
+    const users = await listarUsuarios();
+    const sellers = users.filter(u => u.role === 'Vendedor');
+    const options = '<option value="">Selecione...</option>' + sellers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    
+    if (sel) {
+        sel.innerHTML = options;
+        const group = document.getElementById('vendedor-selection-group');
+        const user = getCurrentUser();
+        if (group) group.style.display = user.role === 'Vendedor' ? 'none' : 'block';
+    }
+    if (fSel) fSel.innerHTML = '<option value="">Todos</option>' + sellers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+}
+
+function setupAdminFilters() {
+    const fSel = document.getElementById('filter-vendedor');
+    const group = document.getElementById('admin-filter-group');
+    const user = getCurrentUser();
+    if (group) group.style.display = user.role === 'Administrador' ? 'flex' : 'none';
+    if (fSel) {
+        fSel.onchange = () => {
+            window.activeSellerFilter = fSel.value;
+            atualizarEstatisticas();
+        };
+    }
+}
+
+async function renderUserSwitcher() {
+    const cont = document.getElementById('user-list-container');
+    if (!cont) return;
+    const users = await listarUsuarios();
+    const current = getCurrentUser();
+    cont.innerHTML = users.map(u => `
+        <button class="btn-switch-user" data-id="${u.id}" style="width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid #eee; background: #fff; border-radius: 8px; margin-bottom: 5px; cursor: pointer;">
+            ${u.foto ? `<img src="${u.foto}" style="width: 28px; height: 28px; border-radius: 50%;">` : '<span class="material-symbols-outlined">account_circle</span>'}
+            <div style="text-align: left; flex: 1;">
+                <div style="font-weight: 600;">${u.name}</div>
+                <div style="font-size: 0.7rem;">${u.role}</div>
+            </div>
+            <span class="material-symbols-outlined" style="font-size: 16px;">${current.role === 'Administrador' ? 'visibility' : 'login'}</span>
+        </button>
+    `).join('');
+
+    cont.querySelectorAll('.btn-switch-user').forEach(btn => {
+        btn.onclick = async () => {
+            if (current.role === 'Administrador') {
+                const u = await buscarUsuarioPorId(btn.dataset.id);
+                const fSel = document.getElementById('filter-vendedor');
+                if (fSel && u) {
+                    fSel.value = u.name;
+                    fSel.dispatchEvent(new Event('change'));
+                    document.querySelector('.nav-item[data-target="sales"]').click();
+                }
+            } else {
+                localStorage.removeItem('crm_current_user');
+                window.location.reload();
+            }
+        };
+    });
+}
+
+function preencherFormVenda(v) {
+    const form = document.getElementById('new-sale-form');
+    document.getElementById('venda-id').value = v.id;
+    document.getElementById('form-title').innerText = 'Editar Venda';
+    
+    // Limpar campos de dependentes antes de preencher
+    const container = document.getElementById('dependentes-container');
+    if (container) container.innerHTML = '';
+
+    for (const key in v) {
+        const input = form.querySelector(`[name="${key}"]`);
+        if (input && input.type !== 'file' && input.type !== 'checkbox' && input.type !== 'radio') {
+            input.value = v[key];
+        }
+    }
+
+    // Preencher Papel do Cliente
+    const papelRadios = form.querySelectorAll('input[name="papelCliente"]');
+    papelRadios.forEach(r => {
+        if (r.value === v.papelCliente) r.checked = true;
+    });
+
+    // Preencher Tipo de Contrato
+    const contratoRadios = form.querySelectorAll('input[name="tipoContrato"]');
+    contratoRadios.forEach(r => {
+        if (r.value === v.tipoContrato) r.checked = true;
+    });
+
+    // Preencher Dependentes
+    if (v.dependentes && v.dependentes.length > 0) {
+        v.dependentes.forEach(d => {
+            addDependenteRow(d.nome, d.dataNascimento, d.cpf, d.papel || 'Titular');
+        });
+    }
+}
+
+function exibirDetalhesVenda(v) {
+    const modal = document.getElementById('modal-visualizar');
+    const body = modal.querySelector('.modal-body');
+    const deps = v.dependentes && v.dependentes.length > 0 ? v.dependentes.map(d => `<li>${d.nome}</li>`).join('') : 'Nenhum';
+    body.innerHTML = `<div><p><strong>Cliente:</strong> ${v.nome}</p><p><strong>Status:</strong> ${v.status}</p><p><strong>Plano:</strong> ${v.tipoPlano}</p></div><hr><h4>Dependentes:</h4><ul>${deps}</ul>`;
+    modal.classList.add('active');
+}
+
+function setupLocationAPI() {
+    const estadoSelect = document.getElementById('estado');
+    const cidadeSelect = document.getElementById('cidade');
+
+    if (estadoSelect && cidadeSelect) {
+        // Se já tiver opções (além da padrão), não busca de novo
+        if (estadoSelect.options.length > 1) return;
+
+        console.log("Buscando estados do IBGE...");
+        estadoSelect.innerHTML = '<option value="">Carregando...</option>';
+
+        fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome')
+            .then(response => {
+                if (!response.ok) throw new Error("Erro na rede");
+                return response.json();
+            })
+            .then(estados => {
+                estadoSelect.innerHTML = '<option value="">Selecione...</option>';
+                estados.forEach(estado => {
+                    const option = document.createElement('option');
+                    option.value = estado.sigla; 
+                    option.textContent = estado.nome;
+                    estadoSelect.appendChild(option);
+                });
+                console.log(`${estados.length} estados carregados.`);
+            })
+            .catch(error => {
+                console.error('Erro ao buscar estados:', error);
+                estadoSelect.innerHTML = '<option value="">Erro ao carregar (tente recarregar a página)</option>';
+            });
+
+        // Buscar Cidades ao mudar o Estado
+        estadoSelect.addEventListener('change', () => {
+            const uf = estadoSelect.value;
+            if (!uf) {
+                cidadeSelect.innerHTML = '<option value="">Selecione um estado primeiro</option>';
+                cidadeSelect.disabled = true;
+                return;
+            }
+
+            cidadeSelect.innerHTML = '<option value="">Carregando...</option>';
+            cidadeSelect.disabled = true;
+
+            fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`)
+                .then(response => response.json())
+                .then(cidades => {
+                    cidadeSelect.innerHTML = '<option value="">Selecione a cidade...</option>';
+                    cidades.forEach(cidade => {
+                        const option = document.createElement('option');
+                        option.value = cidade.nome;
+                        option.textContent = cidade.nome;
+                        cidadeSelect.appendChild(option);
+                    });
+                    cidadeSelect.disabled = false;
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar cidades:', error);
+                    cidadeSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+                });
+        });
+    }
+}
+
+function addDependenteRow(nome = '', dataNasc = '', cpf = '', papel = 'Titular') {
+    const container = document.getElementById('dependentes-container');
+    if (!container) return;
+
+    const row = document.createElement('div');
+    row.className = 'dependent-row';
+    row.style.cssText = 'display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0;';
+    
+    row.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 1.5rem; background: #fff; padding: 6px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem;">
+                    <input type="radio" name="depPapel_${Date.now()}" value="Titular" ${papel === 'Titular' ? 'checked' : ''}> Titular
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem;">
+                    <input type="radio" name="depPapel_${Date.now()}" value="Dependente" ${papel === 'Dependente' ? 'checked' : ''}> Dependente
+                </label>
+            </div>
+            <button type="button" class="btn-remove-dep" style="background: #fee2e2; color: #ef4444; border: none; padding: 6px; border-radius: 6px; cursor: pointer;">
+                <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+            </button>
+        </div>
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px;">
+            <input type="text" name="dependenteNome[]" value="${nome}" placeholder="Nome do Dependente" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+            <input type="date" name="dependenteNascimento[]" value="${dataNasc}" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+            <input type="text" name="dependenteCpf[]" value="${cpf}" placeholder="CPF" class="cpf-mask" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+        </div>
+    `;
+
+    row.querySelector('.btn-remove-dep').onclick = () => row.remove();
+    container.appendChild(row);
+}

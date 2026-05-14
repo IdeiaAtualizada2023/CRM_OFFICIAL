@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sales Ledger - SalesFlow Pro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#d3e4fe",
+                        "on-surface-variant": "#45464d",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "surface-tint": "#565e74",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#2170e4",
+                        "surface-dim": "#cbdbf5",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#76777d",
+                        "primary-fixed-dim": "#bec6e0",
+                        "surface-container": "#e5eeff",
+                        "on-error": "#ffffff",
+                        "on-primary-container": "#7c839b",
+                        "primary": "#000000",
+                        "inverse-surface": "#213145",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "surface-container-low": "#eff4ff",
+                        "primary-container": "#131b2e",
+                        "surface-container-high": "#dce9ff",
+                        "on-secondary-fixed": "#001a42",
+                        "tertiary-container": "#002113",
+                        "on-secondary-fixed-variant": "#004395",
+                        "surface": "#f8f9ff",
+                        "outline-variant": "#c6c6cd",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-tertiary-container": "#009668",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#dae2fd",
+                        "on-surface": "#0b1c30",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-tertiary-fixed": "#002113",
+                        "inverse-primary": "#bec6e0",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "secondary": "#0058be",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#000000",
+                        "error-container": "#ffdad6",
+                        "surface-bright": "#f8f9ff",
+                        "on-background": "#0b1c30",
+                        "on-primary-fixed": "#131b2e",
+                        "background": "#f8f9ff",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-secondary-container": "#fefcff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "data-mono": ["Inter"],
+                        "h2": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "h1": ["Inter"],
+                        "h3": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #F8FAFC;
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface">
+<!-- SideNavBar Shell -->
+<aside class="fixed left-0 top-0 h-full w-[280px] border-r border-slate-200 bg-slate-50 flex flex-col p-4 z-50">
+<div class="mb-8 px-2">
+<h1 class="text-lg font-black tracking-tight text-slate-900">SalesFlow Pro</h1>
+<p class="text-label-sm text-slate-500">Enterprise Finance</p>
+</div>
+<nav class="flex flex-col gap-1 flex-grow">
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 font-medium text-sm" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<!-- Active State for Sales Ledger -->
+<a class="flex items-center gap-3 px-3 py-2 bg-white text-blue-600 shadow-sm border border-slate-200 rounded-md transition-all duration-200 font-medium text-sm" href="#">
+<span class="material-symbols-outlined">table_chart</span>
+                Sales Ledger
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 font-medium text-sm" href="#">
+<span class="material-symbols-outlined">payments</span>
+                Payments
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 font-medium text-sm" href="#">
+<span class="material-symbols-outlined">group</span>
+                Customer Base
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 font-medium text-sm" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                Reports
+            </a>
+</nav>
+<div class="flex flex-col gap-1 border-t border-slate-200 pt-4">
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 font-medium text-sm" href="#">
+<span class="material-symbols-outlined">contact_support</span>
+                Support
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 transition-all duration-200 font-medium text-sm" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</div>
+</aside>
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 right-0 left-[280px] h-[72px] bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 flex items-center justify-between z-40">
+<div class="flex items-center flex-1 max-w-xl">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-secondary/20 focus:bg-white transition-all" placeholder="Search sales, clients, or invoice IDs..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors active:scale-95">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors active:scale-95">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-slate-200 overflow-hidden ml-2 ring-2 ring-white">
+<img alt="User profile" data-alt="professional corporate portrait of a financial executive in a clean studio setting with soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEYgNi7BuXMHOP6nbbhRm318tBxFNBycAeTHpxpdYSABxmxSlZmuo-zNJSoUarBPx44mBV6TlahxT95Z968vqyLXoWfsywIMDY2ey8Dw_Zuv0cJWjDfqEBl-Ts1CymJQMr45Gkg9G7exejPqnSFZICgi70G04pg4B1gYZIR4XvMkJTmrZKO8ruggxsnHXcbSZbs64jP0NxxVLQMTzuROjOX6kVFe4k-hmCQCr23j7hxiFd29h5P8Kv_xx9Q46X5Kmyisc9DDJx_RA"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-[280px] pt-[72px] p-8 min-h-screen">
+<!-- Header Section -->
+<div class="flex justify-between items-end mb-8">
+<div>
+<h2 class="font-h1 text-h1 text-on-surface mb-1">Sales Ledger</h2>
+<p class="font-body-sm text-body-sm text-slate-500">Manage and track your comprehensive sales installments and client history.</p>
+</div>
+<button class="bg-secondary hover:bg-blue-700 text-white font-label-md text-label-md px-6 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition-all active:scale-95">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                New Sale
+            </button>
+</div>
+<!-- Metric Overview Bento -->
+<div class="grid grid-cols-12 gap-6 mb-8">
+<div class="col-span-12 md:col-span-3 bg-white p-6 border border-slate-200 rounded-xl">
+<div class="flex justify-between items-start mb-4">
+<span class="text-label-sm text-slate-500">TOTAL RECEIVABLES</span>
+<span class="material-symbols-outlined text-blue-600 bg-blue-50 p-1.5 rounded">payments</span>
+</div>
+<h3 class="font-h2 text-h2 text-on-surface mb-2">$1,284,500.00</h3>
+<div class="flex items-center gap-1 text-emerald-600 text-xs font-semibold">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+<span>12% from last month</span>
+</div>
+</div>
+<div class="col-span-12 md:col-span-3 bg-white p-6 border border-slate-200 rounded-xl">
+<div class="flex justify-between items-start mb-4">
+<span class="text-label-sm text-slate-500">PENDING INSTALLMENTS</span>
+<span class="material-symbols-outlined text-amber-600 bg-amber-50 p-1.5 rounded">schedule</span>
+</div>
+<h3 class="font-h2 text-h2 text-on-surface mb-2">$342,100.00</h3>
+<div class="flex items-center gap-1 text-slate-500 text-xs font-semibold">
+<span>42 payments due this week</span>
+</div>
+</div>
+<div class="col-span-12 md:col-span-6 bg-white p-6 border border-slate-200 rounded-xl relative overflow-hidden">
+<div class="flex justify-between items-start relative z-10">
+<div>
+<span class="text-label-sm text-slate-500">REVENUE GROWTH</span>
+<h3 class="font-h2 text-h2 text-on-surface mt-1">+24.8%</h3>
+</div>
+<div class="flex gap-2">
+<span class="h-24 w-8 bg-blue-100 rounded-sm"></span>
+<span class="h-16 w-8 bg-blue-500 rounded-sm mt-8"></span>
+<span class="h-20 w-8 bg-blue-200 rounded-sm mt-4"></span>
+<span class="h-28 w-8 bg-blue-600 rounded-sm -mt-4"></span>
+</div>
+</div>
+<div class="absolute inset-0 bg-gradient-to-r from-transparent to-white/10 pointer-events-none"></div>
+</div>
+</div>
+<!-- Filters & Table Section -->
+<div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+<!-- Table Controls -->
+<div class="p-4 border-b border-slate-200 flex flex-wrap gap-4 items-center justify-between bg-slate-50/30">
+<div class="flex gap-2">
+<button class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                        Status
+                    </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+                        Date Range
+                    </button>
+</div>
+<div class="flex items-center gap-2 text-label-sm text-slate-400">
+<span>Showing 1-10 of 248 Sales</span>
+</div>
+</div>
+<!-- Data Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50/50 text-slate-500 font-label-sm text-label-sm uppercase tracking-wider">
+<th class="px-6 py-4 font-semibold">Date</th>
+<th class="px-6 py-4 font-semibold">Client Name</th>
+<th class="px-6 py-4 font-semibold">Contact Email</th>
+<th class="px-6 py-4 font-semibold">Status</th>
+<th class="px-6 py-4 font-semibold">Payment Progress</th>
+<th class="px-6 py-4 font-semibold text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<!-- Row 1 -->
+<tr class="hover:bg-slate-50/50 transition-colors group">
+<td class="px-6 py-4 text-sm text-slate-600 font-data-mono">Oct 24, 2023</td>
+<td class="px-6 py-4">
+<div class="font-label-md text-slate-900">Artemis Strategy Group</div>
+</td>
+<td class="px-6 py-4 text-sm text-slate-500">billing@artemis.co</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-green-100 text-green-800">PAID</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex gap-1.5 items-center">
+<div class="w-8 h-1.5 rounded-full bg-green-500" title="1st Installment: Paid"></div>
+<div class="w-8 h-1.5 rounded-full bg-green-500" title="2nd Installment: Paid"></div>
+<div class="w-8 h-1.5 rounded-full bg-green-500" title="3rd Installment: Paid"></div>
+<span class="text-[10px] font-bold text-slate-400 ml-2">100%</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-blue-600 transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-slate-50/50 transition-colors group">
+<td class="px-6 py-4 text-sm text-slate-600 font-data-mono">Oct 22, 2023</td>
+<td class="px-6 py-4">
+<div class="font-label-md text-slate-900">Nova Stream Systems</div>
+</td>
+<td class="px-6 py-4 text-sm text-slate-500">accounting@novastream.io</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 uppercase tracking-tighter">Pending</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex gap-1.5 items-center">
+<div class="w-8 h-1.5 rounded-full bg-green-500" title="1st Installment: Paid"></div>
+<div class="w-8 h-1.5 rounded-full bg-amber-400" title="2nd Installment: Pending"></div>
+<div class="w-8 h-1.5 rounded-full bg-slate-200" title="3rd Installment: Scheduled"></div>
+<span class="text-[10px] font-bold text-slate-400 ml-2">33%</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-blue-600 transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-slate-50/50 transition-colors group">
+<td class="px-6 py-4 text-sm text-slate-600 font-data-mono">Oct 18, 2023</td>
+<td class="px-6 py-4">
+<div class="font-label-md text-slate-900">Beacon Hill Partners</div>
+</td>
+<td class="px-6 py-4 text-sm text-slate-500">m.ross@beaconpartners.com</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-100 text-red-800">OVERDUE</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex gap-1.5 items-center">
+<div class="w-8 h-1.5 rounded-full bg-green-500" title="1st Installment: Paid"></div>
+<div class="w-8 h-1.5 rounded-full bg-red-500" title="2nd Installment: Overdue"></div>
+<div class="w-8 h-1.5 rounded-full bg-slate-200" title="3rd Installment: Scheduled"></div>
+<span class="text-[10px] font-bold text-red-600 ml-2">Action Required</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-blue-600 transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-slate-50/50 transition-colors group">
+<td class="px-6 py-4 text-sm text-slate-600 font-data-mono">Oct 15, 2023</td>
+<td class="px-6 py-4">
+<div class="font-label-md text-slate-900">Quantum Leap Tech</div>
+</td>
+<td class="px-6 py-4 text-sm text-slate-500">ops@quantumleap.net</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">PENDING</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex gap-1.5 items-center">
+<div class="w-8 h-1.5 rounded-full bg-green-500"></div>
+<div class="w-8 h-1.5 rounded-full bg-green-500"></div>
+<div class="w-8 h-1.5 rounded-full bg-amber-400"></div>
+<span class="text-[10px] font-bold text-slate-400 ml-2">66%</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-blue-600 transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-slate-50/50 transition-colors group">
+<td class="px-6 py-4 text-sm text-slate-600 font-data-mono">Oct 12, 2023</td>
+<td class="px-6 py-4">
+<div class="font-label-md text-slate-900">Starlight Industries</div>
+</td>
+<td class="px-6 py-4 text-sm text-slate-500">finance@starlight.com</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-green-100 text-green-800">PAID</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex gap-1.5 items-center">
+<div class="w-8 h-1.5 rounded-full bg-green-500"></div>
+<div class="w-8 h-1.5 rounded-full bg-green-500"></div>
+<div class="w-8 h-1.5 rounded-full bg-green-500"></div>
+<span class="text-[10px] font-bold text-slate-400 ml-2">100%</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-blue-600 transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="p-6 border-t border-slate-200 bg-slate-50/30 flex items-center justify-between">
+<div class="text-sm text-slate-500">
+                    Showing 5 of 248 entries
+                </div>
+<div class="flex gap-2">
+<button class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-white transition-colors disabled:opacity-50" disabled="">Previous</button>
+<button class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium bg-white hover:bg-slate-50 transition-colors">Next</button>
+</div>
+</div>
+</div>
+<!-- Utility FAB Suppression: As per rules, no FAB on this screen -->
+</main>
+</body></html>
