@@ -221,12 +221,30 @@ function setupGlobalEventListeners() {
             });
             vendaData.dependentes = dependentes;
 
+            // Feedback de loading
+            const btnSalvar = saleForm.querySelector('button[type="submit"]');
+            const originalBtnText = btnSalvar.innerHTML;
+            btnSalvar.disabled = true;
+            btnSalvar.innerHTML = '<span class="material-symbols-outlined spinning">sync</span> Salvando...';
+
             try {
+                // Limpar campos de valor (remover R$ e converter vírgula para ponto se necessário)
+                const camposValor = ['pagamento1', 'pagamento2', 'pagamento3', 'valorEntrada'];
+                camposValor.forEach(campo => {
+                    if (vendaData[campo]) {
+                        vendaData[campo] = vendaData[campo].replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
+                    }
+                });
+
                 await salvarVenda(vendaData);
                 
-                // --- Integração com Google Calendar ---
+                // --- Integração com Google Calendar (Não bloqueia o salvamento) ---
                 if (vendaData.syncGoogleCalendar === 'on') {
-                    await syncVendaComGoogleCalendar(vendaData);
+                    console.log("Iniciando sincronização em segundo plano...");
+                    syncVendaComGoogleCalendar(vendaData).catch(err => {
+                        console.error("Falha na sincronização automática:", err);
+                        alert("Venda salva, mas houve um erro ao sincronizar com Google Agenda. Você pode tentar manualmente nos detalhes da venda.");
+                    });
                 }
                 // ---------------------------------------
 
