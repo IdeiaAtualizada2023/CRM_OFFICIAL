@@ -11,14 +11,20 @@ import {
     getDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { db, auth } from './firebaseConfig.js';
-import { GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { 
+    GoogleAuthProvider, 
+    signInWithPopup, 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword,
+    signOut
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const AUTH_KEY = 'crm_current_user';
 const COLLECTION_USERS = 'usuarios';
 
 // Usuários padrão (backup caso o banco esteja vazio)
 const INITIAL_USERS = [
-    { id: 'admin-001', username: 'admin', name: 'Administrador Principal', role: 'Administrador', cpf: '000.000.000-00', cod: '000', avatar: 'person', email: 'admin@amels.com', password: 'admin' }
+    { id: 'admin-001', username: 'admin', name: 'Administrador Principal', role: 'Administrador', cpf: '000.000.000-00', cod: '000', avatar: 'person', email: 'admin@amels.com', password: 'admin123' }
 ];
 
 let cachedUsers = [];
@@ -46,31 +52,78 @@ export async function listarUsuarios() {
     }
 }
 
-export async function login(email, password) {
+export async function buscarUsuarioPorEmail(email) {
     try {
         const usersRef = collection(db, COLLECTION_USERS);
-        
-        // 1. Verifica se existem usuários no banco
-        const snapshotTotal = await getDocs(usersRef);
-        if (snapshotTotal.empty) {
-            console.log("Banco vazio detectado no login. Criando admin padrão...");
-            await cadastrarUsuario(INITIAL_USERS[0]);
-        }
-
-        // 2. Tenta o login real
-        const q = query(usersRef, where("email", "==", email), where("password", "==", password));
+        const q = query(usersRef, where("email", "==", email));
         const querySnapshot = await getDocs(q);
-        
         if (!querySnapshot.empty) {
             const userDoc = querySnapshot.docs[0];
-            const user = { id: userDoc.id, ...userDoc.data() };
-            localStorage.setItem(AUTH_KEY, JSON.stringify(user));
-            return { success: true, user };
+            return { id: userDoc.id, ...userDoc.data() };
+        }
+    } catch (e) {
+        console.error("Erro ao buscar usuário por email:", e);
+    }
+    return null;
+}
+
+export async function login(email, password) {
+    try {
+        // 1. Tenta autenticar no Firebase Auth nativo
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const firebaseUser = userCredential.user;
+
+        // 2. Busca dados complementares (role, cpf, etc) no Firestore
+        const userData = await buscarUsuarioPorEmail(email);
+        
+        if (userData) {
+            localStorage.setItem(AUTH_KEY, JSON.stringify(userData));
+            return { success: true, user: userData };
+        } else {
+            // Caso raro: tem no Auth mas não no Firestore
+            const newUser = { 
+                name: firebaseUser.displayName || email.split('@')[0], 
+                email: email, 
+                role: 'Vendedor',
+                cod: '---'
+            };
+            const created = await cadastrarUsuario(newUser);
+            localStorage.setItem(AUTH_KEY, JSON.stringify(created));
+            return { success: true, user: created };
         }
     } catch (e) {
         console.error("Erro no login:", e);
+        
+        // Fallback para o primeiro acesso/migração
+        if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+            // Tenta verificar se o usuário existe no Firestore com essa senha (legado)
+            const usersRef = collection(db, COLLECTION_USERS);
+            const q = query(usersRef, where("email", "==", email), where("password", "==", password));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                console.log("Usuário legado detectado. Migrando para Firebase Auth...");
+                const userDoc = querySnapshot.docs[0];
+                const userData = { id: userDoc.id, ...userDoc.data() };
+                
+                // Tenta criar no Firebase Auth para as próximas vezes
+                try {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    console.log("Migração de Auth concluída com sucesso.");
+                } catch (migrationErr) {
+                    console.error("Erro na migração de Auth:", migrationErr);
+                }
+
+                localStorage.setItem(AUTH_KEY, JSON.stringify(userData));
+                return { success: true, user: userData };
+            }
+        }
+
+        let msg = 'E-mail ou senha incorretos.';
+        if (e.code === 'auth/too-many-requests') msg = 'Muitas tentativas. Tente novamente mais tarde.';
+        
+        return { success: false, message: msg };
     }
-    return { success: false, message: 'E-mail ou senha incorretos.' };
 }
 
 export async function loginComGoogle() {
@@ -131,12 +184,25 @@ export async function setCurrentUser(userId) {
 
 export async function cadastrarUsuario(userData) {
     try {
-        // Gera username baseado no primeiro nome (minúsculo)
+        // 1. Cria o usuário no Firebase Auth nativo (para segurança)
+        if (userData.email && userData.password) {
+            try {
+                await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+                console.log("Usuário criado no Firebase Auth.");
+            } catch (authErr) {
+                // Se já existir no Auth, apenas ignoramos o erro e continuamos para o Firestore
+                if (authErr.code !== 'auth/email-already-in-use') {
+                    console.error("Erro ao criar no Auth:", authErr);
+                }
+            }
+        }
+
+        // 2. Gera username e campos padrão se necessário
         if (!userData.username) {
             userData.username = userData.name.split(' ')[0].toLowerCase() + Math.floor(Math.random() * 100);
         }
         userData.avatar = userData.avatar || 'person';
-        if (!userData.password) userData.password = '123';
+        if (!userData.password) userData.password = '123456'; // Padrão mínimo 6 chars
 
         const usersRef = collection(db, COLLECTION_USERS);
         
