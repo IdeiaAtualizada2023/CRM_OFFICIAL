@@ -219,23 +219,7 @@ function setupGlobalEventListeners() {
                 
                 // --- Integração com Google Calendar ---
                 if (vendaData.syncGoogleCalendar === 'on') {
-                    console.log("Iniciando sincronização com Google Calendar...");
-                    const pagamentos = [
-                        { valor: vendaData.pagamento1, data: vendaData.vencimento1, num: 1 },
-                        { valor: vendaData.pagamento2, data: vendaData.vencimento2, num: 2 },
-                        { valor: vendaData.pagamento3, data: vendaData.vencimento3, num: 3 }
-                    ];
-
-                    for (const p of pagamentos) {
-                        if (p.data && p.valor) {
-                            try {
-                                await createPaymentEvent(vendaData, p.num, p.data, p.valor);
-                                console.log(`Lembrete da parcela ${p.num} criado no Google Calendar.`);
-                            } catch (calErr) {
-                                console.error(`Erro ao criar lembrete da parcela ${p.num}:`, calErr);
-                            }
-                        }
-                    }
+                    await syncVendaComGoogleCalendar(vendaData);
                 }
                 // ---------------------------------------
 
@@ -333,6 +317,29 @@ function setupGlobalEventListeners() {
             document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
         }
     });
+
+    // Botão Sincronizar Agenda (Manual)
+    const btnSyncManual = document.getElementById('btn-sync-calendar-manual');
+    if (btnSyncManual) {
+        btnSyncManual.addEventListener('click', async () => {
+            if (!window.currentViewedVenda) return;
+            
+            btnSyncManual.disabled = true;
+            const originalText = btnSyncManual.innerHTML;
+            btnSyncManual.innerHTML = '<span class="material-symbols-outlined spinning">sync</span> Sincronizando...';
+            
+            try {
+                await syncVendaComGoogleCalendar(window.currentViewedVenda);
+                alert("✅ Parcelas sincronizadas com sua Google Agenda!");
+            } catch (err) {
+                console.error("Erro na sincronização manual:", err);
+                alert("❌ Erro ao sincronizar com Google Agenda. Verifique se os popups estão permitidos.");
+            } finally {
+                btnSyncManual.disabled = false;
+                btnSyncManual.innerHTML = originalText;
+            }
+        });
+    }
 
     // Logout
     const btnLogout = document.getElementById('btn-logout');
@@ -606,11 +613,71 @@ function preencherFormVenda(v) {
 }
 
 function exibirDetalhesVenda(v) {
+    window.currentViewedVenda = v; // Armazena para sincronização manual
     const modal = document.getElementById('modal-visualizar');
     const body = modal.querySelector('.modal-body');
-    const deps = v.dependentes && v.dependentes.length > 0 ? v.dependentes.map(d => `<li>${d.nome}</li>`).join('') : 'Nenhum';
-    body.innerHTML = `<div><p><strong>Cliente:</strong> ${v.nome}</p><p><strong>Status:</strong> ${v.status}</p><p><strong>Plano:</strong> ${v.tipoPlano}</p></div><hr><h4>Dependentes:</h4><ul>${deps}</ul>`;
+    
+    // Formatar parcelas para exibição
+    const p1 = v.pagamento1 ? `<p><strong>1ª Parcela:</strong> R$ ${v.pagamento1} (${formatDate(v.vencimento1)})</p>` : '';
+    const p2 = v.pagamento2 ? `<p><strong>2ª Parcela:</strong> R$ ${v.pagamento2} (${formatDate(v.vencimento2)})</p>` : '';
+    const p3 = v.pagamento3 ? `<p><strong>3ª Parcela:</strong> R$ ${v.pagamento3} (${formatDate(v.vencimento3)})</p>` : '';
+
+    const deps = v.dependentes && v.dependentes.length > 0 ? v.dependentes.map(d => `<li>${d.nome} (${d.papel})</li>`).join('') : 'Nenhum';
+    
+    body.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <h4 style="color: var(--primary); margin-bottom: 10px;">Dados do Cliente</h4>
+                <p><strong>Nome:</strong> ${v.nome}</p>
+                <p><strong>CPF:</strong> ${v.cpfCnpj}</p>
+                <p><strong>Email:</strong> ${v.email}</p>
+                <p><strong>Telefone:</strong> ${v.telefone}</p>
+            </div>
+            <div>
+                <h4 style="color: var(--primary); margin-bottom: 10px;">Dados da Venda</h4>
+                <p><strong>Contrato:</strong> ${v.numeroContrato || '---'}</p>
+                <p><strong>Plano:</strong> ${v.tipoPlano}</p>
+                <p><strong>Vendedor:</strong> ${v.vendedor}</p>
+                <p><strong>Status:</strong> <span class="badge badge-${v.status === 'Aprovado' ? 'success' : 'warning'}">${v.status}</span></p>
+            </div>
+        </div>
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <h4 style="color: var(--primary); margin-bottom: 10px;">Pagamentos</h4>
+                ${p1} ${p2} ${p3}
+            </div>
+            <div>
+                <h4 style="color: var(--primary); margin-bottom: 10px;">Dependentes</h4>
+                <ul style="padding-left: 20px;">${deps}</ul>
+            </div>
+        </div>
+    `;
     modal.classList.add('active');
+}
+
+/**
+ * Função utilitária para sincronizar parcelas de uma venda com o Google Calendar
+ */
+async function syncVendaComGoogleCalendar(venda) {
+    console.log("Iniciando sincronização com Google Calendar...");
+    const pagamentos = [
+        { valor: venda.pagamento1 || venda.valor1, data: venda.vencimento1, num: 1 },
+        { valor: venda.pagamento2 || venda.valor2, data: venda.vencimento2, num: 2 },
+        { valor: venda.pagamento3 || venda.valor3, data: venda.vencimento3, num: 3 }
+    ];
+
+    for (const p of pagamentos) {
+        if (p.data && p.valor) {
+            try {
+                await createPaymentEvent(venda, p.num, p.data, p.valor);
+                console.log(`✅ Lembrete da parcela ${p.num} criado.`);
+            } catch (calErr) {
+                console.error(`❌ Erro na parcela ${p.num}:`, calErr);
+                throw calErr; // Propaga para o chamador tratar (ex: mostrar alert)
+            }
+        }
+    }
 }
 
 function setupLocationAPI() {

@@ -7,7 +7,7 @@
 // 1. Ative a "Google Calendar API"
 // 2. Crie uma "Chave de API" (API_KEY)
 // 3. Crie um "ID do cliente OAuth 2.0" do tipo "Aplicativo da Web" (CLIENT_ID)
-// 4. Adicione seu domínio (ex: http://localhost:5502) em "Origens JavaScript autorizadas"
+// 4. Adicione seu domínio (ex: https://rajacrm.site) em "Origens JavaScript autorizadas"
 
 const CLIENT_ID = '1035486597492-lh8m7q627kh0p2oliituljq35gstved5.apps.googleusercontent.com';
 const API_KEY = 'AIzaSyAyR1EP87FI0SvMsEZ_b_zHw-icsa0I3sg';
@@ -26,26 +26,34 @@ let gsisInited = false;
  * Initialize Google API client and Identity Services
  */
 export async function initGoogleApi() {
-    return new Promise((resolve) => {
+    if (gapiInited && gsisInited) return true;
+
+    return new Promise((resolve, reject) => {
         const checkReady = () => {
             if (typeof gapi !== 'undefined' && typeof google !== 'undefined') {
-                gapi.load('client', async () => {
-                    await gapi.client.init({
-                        apiKey: API_KEY,
-                        discoveryDocs: [DISCOVERY_DOC],
+                try {
+                    gapi.load('client', async () => {
+                        await gapi.client.init({
+                            apiKey: API_KEY,
+                            discoveryDocs: [DISCOVERY_DOC],
+                        });
+                        gapiInited = true;
+                        
+                        tokenClient = google.accounts.oauth2.initTokenClient({
+                            client_id: CLIENT_ID,
+                            scope: SCOPES,
+                            callback: '', // defined at request time
+                        });
+                        gsisInited = true;
+                        console.log("✅ Google API Inicializada");
+                        resolve(true);
                     });
-                    gapiInited = true;
-                    
-                    tokenClient = google.accounts.oauth2.initTokenClient({
-                        client_id: CLIENT_ID,
-                        scope: SCOPES,
-                        callback: '', // defined at request time
-                    });
-                    gsisInited = true;
-                    console.log("Google API Inicializada");
-                    resolve(true);
-                });
+                } catch (err) {
+                    console.error("❌ Erro ao inicializar gapi:", err);
+                    reject(err);
+                }
             } else {
+                console.log("Aguardando scripts do Google...");
                 setTimeout(checkReady, 500);
             }
         };
@@ -59,35 +67,46 @@ export async function initGoogleApi() {
 async function getToken(callback) {
     if (!gsisInited) await initGoogleApi();
     
-    tokenClient.callback = async (resp) => {
-        if (resp.error !== undefined) {
-            throw (resp);
-        }
-        await callback();
-    };
+    return new Promise((resolve, reject) => {
+        tokenClient.callback = async (resp) => {
+            if (resp.error !== undefined) {
+                console.error("❌ Erro de autenticação Google:", resp);
+                reject(resp);
+                return;
+            }
+            try {
+                await callback();
+                resolve();
+            } catch (err) {
+                reject(err);
+            }
+        };
 
-    if (gapi.client.getToken() === null) {
-        // Prompt the user to select a Google Account and ask for consent to share their data
-        // when establishing a new session.
-        tokenClient.requestAccessToken({prompt: 'consent'});
-    } else {
-        // Skip display of account chooser and consent dialog for an existing session.
-        tokenClient.requestAccessToken({prompt: ''});
-    }
+        if (gapi.client.getToken() === null) {
+            tokenClient.requestAccessToken({prompt: 'consent'});
+        } else {
+            tokenClient.requestAccessToken({prompt: ''});
+        }
+    });
 }
 
 /**
  * Create a calendar event for a payment
  */
 export async function createPaymentEvent(venda, numParcela, dataVencimento, valor) {
+    console.log(`📅 Criando evento para parcela ${numParcela}...`);
+    
+    // Formatar valor para moeda
+    const valorFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+    
     return new Promise((resolve, reject) => {
         getToken(async () => {
             try {
                 const event = {
-                    'summary': `Vencimento: Parcela ${numParcela} - ${venda.nome}`,
-                    'description': `Cliente: ${venda.nome}\nCPF: ${venda.cpfCnpj}\nValor da Parcela: R$ ${valor}\nContrato: ${venda.numeroContrato || 'N/A'}\n\nLembrete automático do CRM.`,
+                    'summary': `💰 Vencimento: Parcela ${numParcela} - ${venda.nome}`,
+                    'description': `📄 Cliente: ${venda.nome}\n🔢 CPF: ${venda.cpfCnpj}\n💵 Valor da Parcela: ${valorFormatado}\n📝 Contrato: ${venda.numeroContrato || 'N/A'}\n\n🤖 Lembrete automático do CRM Amels.`,
                     'start': {
-                        'date': dataVencimento, // Use 'date' for all-day event
+                        'date': dataVencimento,
                         'timeZone': 'America/Sao_Paulo'
                     },
                     'end': {
@@ -97,10 +116,11 @@ export async function createPaymentEvent(venda, numParcela, dataVencimento, valo
                     'reminders': {
                         'useDefault': false,
                         'overrides': [
-                            {'method': 'popup', 'minutes': 1440}, // 1 day before
-                            {'method': 'popup', 'minutes': 60}     // 1 hour before
+                            {'method': 'popup', 'minutes': 1440}, // 1 dia antes
+                            {'method': 'popup', 'minutes': 60}     // 1 hora antes
                         ]
-                    }
+                    },
+                    'colorId': '2' // Sage color
                 };
 
                 const request = gapi.client.calendar.events.insert({
@@ -109,11 +129,16 @@ export async function createPaymentEvent(venda, numParcela, dataVencimento, valo
                 });
 
                 request.execute((event) => {
-                    console.log('Evento criado: ' + event.htmlLink);
-                    resolve(event);
+                    if (event.error) {
+                        console.error('❌ Erro na API do Calendário:', event.error);
+                        reject(event.error);
+                    } else {
+                        console.log('✅ Evento criado com sucesso: ' + event.htmlLink);
+                        resolve(event);
+                    }
                 });
             } catch (err) {
-                console.error('Erro ao criar evento:', err);
+                console.error('❌ Erro ao criar evento:', err);
                 reject(err);
             }
         }).catch(reject);
