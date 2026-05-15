@@ -33,7 +33,14 @@ export async function carregarVendas() {
             q = query(vendasRef, where('vendedor', '==', window.activeSellerFilter));
         }
 
-        const querySnapshot = await getDocs(q);
+        // Proteção contra travamento (Timeout de 6 segundos)
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("Tempo de conexão esgotado (Timeout)")), 6000)
+        );
+
+        console.log("Executando busca no Firestore com proteção de timeout...");
+        const querySnapshot = await Promise.race([getDocs(q), timeoutPromise]);
+        
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             vendas.push({ 

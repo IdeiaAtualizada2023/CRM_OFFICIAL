@@ -4,7 +4,6 @@ import { createPaymentEvent, initGoogleApi } from './services/googleCalendarServ
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("Sistema CRM Amels - Inicializando...");
-    alert("🚀 Sistema CRM Atualizado - Versão 3.0 Carregada!");
 
     // Inicialização Crítica: Listeners Globais primeiro para garantir funcionalidade da UI
     try {
