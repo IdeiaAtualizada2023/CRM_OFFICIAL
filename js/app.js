@@ -420,11 +420,14 @@ function setupGlobalEventListeners() {
     const togglePassBtn = document.getElementById('toggle-password');
     const passInput = document.getElementById('user-password');
     if (togglePassBtn && passInput) {
-        togglePassBtn.addEventListener('click', () => {
+        togglePassBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             const isPrivate = passInput.type === 'password';
             passInput.type = isPrivate ? 'text' : 'password';
             togglePassBtn.querySelector('span').textContent = isPrivate ? 'visibility_off' : 'visibility';
-        });
+            console.log("Toggle senha:", passInput.type);
+        };
     }
 }
 
