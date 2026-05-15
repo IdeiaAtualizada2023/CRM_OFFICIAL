@@ -471,8 +471,10 @@ async function renderUsersTable() {
     // Bind Edit/Delete
     tbody.querySelectorAll('.edit-user').forEach(btn => {
         btn.onclick = async () => {
+            console.log("Botão editar clicado para o ID:", btn.dataset.id);
             const u = await buscarUsuarioPorId(btn.dataset.id);
             if (u) {
+                console.log("Usuário encontrado:", u);
                 const form = document.getElementById('new-user-form');
                 document.getElementById('edit-user-id').value = u.id;
                 form.querySelector('[name="name"]').value = u.name || '';
