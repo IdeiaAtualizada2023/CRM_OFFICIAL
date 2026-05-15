@@ -34,7 +34,9 @@ export async function listarUsuarios() {
         const querySnapshot = await getDocs(collection(db, COLLECTION_USERS));
         const users = [];
         querySnapshot.forEach((doc) => {
-            users.push({ id: doc.id, ...doc.data() });
+            // O ID do documento deve vir por último para garantir que sobrescreva 
+            // qualquer campo "id" vazio que possa existir nos dados do documento
+            users.push({ ...doc.data(), id: doc.id });
         });
 
         if (users.length === 0) {
@@ -204,17 +206,18 @@ export async function cadastrarUsuario(userData) {
         userData.avatar = userData.avatar || 'person';
         if (!userData.password) userData.password = '123456'; // Padrão mínimo 6 chars
 
+        const id = userData.id;
+        const dataToSave = { ...userData };
+        delete dataToSave.id; // Nunca salvar o campo ID dentro dos dados do documento
+
         const usersRef = collection(db, COLLECTION_USERS);
         
-        if (userData.id) {
-            const id = userData.id;
-            const dataToSave = { ...userData };
-            delete dataToSave.id;
+        if (id && id.length > 5) {
             await setDoc(doc(db, COLLECTION_USERS, id), dataToSave);
-            return userData;
+            return { id, ...dataToSave };
         } else {
-            const docRef = await addDoc(usersRef, userData);
-            return { id: docRef.id, ...userData };
+            const docRef = await addDoc(usersRef, dataToSave);
+            return { id: docRef.id, ...dataToSave };
         }
     } catch (e) {
         console.error("Erro ao cadastrar usuário:", e);
