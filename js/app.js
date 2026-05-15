@@ -1,9 +1,10 @@
-import { listarUsuarios, getCurrentUser, login, loginComGoogle, cadastrarUsuario, buscarUsuarioPorId, atualizarUsuario, excluirUsuario, setCurrentUser } from './services/authService.js';
+import { listarUsuarios, getCurrentUser, login, loginComGoogle, cadastrarUsuario, buscarUsuarioPorId, atualizarUsuario, excluirUsuario, setCurrentUser, initAuth } from './services/authService.js';
 import { carregarVendas, salvarVenda, getVenda, excluirVenda, toggleStatusVenda, atualizarEstatisticas } from './services/dataService.js';
 import { createPaymentEvent, initGoogleApi } from './services/googleCalendarService.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("Sistema CRM Amels - Inicializando...");
+    alert("🚀 Sistema CRM Atualizado - Versão 3.0 Carregada!");
 
     // Inicialização Crítica: Listeners Globais primeiro para garantir funcionalidade da UI
     try {
@@ -289,7 +290,7 @@ function setupGlobalEventListeners() {
         allSalesTable.addEventListener('click', async (e) => {
             const btn = e.target.closest('button');
             if (!btn) return;
-            const id = btn.dataset.id;
+            const id = btn.dataset.vendaid;
 
             if (btn.classList.contains('action-edit')) {
                 const venda = await getVenda(id);
@@ -298,14 +299,18 @@ function setupGlobalEventListeners() {
                     document.querySelector('.nav-item[data-target="new-sale"]').click();
                 }
             } else if (btn.classList.contains('action-delete')) {
-                if (confirm('Tem certeza que deseja excluir esta venda permanentemente?')) {
-                    console.log("Tentando excluir venda com ID:", id);
+                if (!id) {
+                    alert("Erro: ID da venda não encontrado!");
+                    return;
+                }
+                if (confirm('Deseja excluir permanentemente a venda ID: ' + id + '?')) {
+                    console.log("Iniciando exclusão para ID:", id);
                     const sucesso = await excluirVenda(id);
                     if (sucesso) {
-                        alert("✅ Venda excluída com sucesso!");
-                        await atualizarEstatisticas(); // Força atualização da lista
+                        alert("Venda excluída!");
+                        await atualizarEstatisticas();
                     } else {
-                        alert("❌ Erro ao excluir a venda. Tente novamente.");
+                        alert("Erro ao excluir no Firebase. Verifique o console.");
                     }
                 }
             } else if (btn.classList.contains('action-status')) {
@@ -516,8 +521,12 @@ async function renderUsersTable() {
             <td><span class="badge badge-${u.role === 'Administrador' ? 'primary' : 'info'}">${u.role}</span></td>
             <td>
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-sm btn-secondary edit-user" data-id="${u.id}"><span class="material-symbols-outlined" style="font-size: 16px;">edit</span></button>
-                    <button class="btn btn-sm btn-danger delete-user" data-id="${u.id}"><span class="material-symbols-outlined" style="font-size: 16px;">delete</span></button>
+                    <button class="btn btn-sm btn-secondary edit-user" data-id="${u.id}" title="Editar Usuário">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>
+                    </button>
+                    <button class="btn btn-sm btn-danger delete-user" data-id="${u.id}" title="Excluir Usuário">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+                    </button>
                 </div>
             </td>
         </tr>

@@ -272,3 +272,12 @@ export async function excluirUsuario(id) {
     }
 }
 
+export async function initAuth() {
+    console.log("Inicializando autenticação...");
+    return new Promise((resolve) => {
+        // Apenas garante que o estado inicial foi verificado
+        const user = getCurrentUser();
+        if (user) console.log("Sessão ativa para:", user.name);
+        resolve(user);
+    });
+}

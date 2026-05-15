@@ -68,9 +68,18 @@ export async function carregarVendas() {
 
     } catch (e) {
         console.error("Erro ao carregar do Firestore:", e);
-        // Fallback para localStorage se der erro (ex: offline)
+        // Alerta o usuário sobre o problema de conexão
+        alert("⚠️ Atenção: Não foi possível carregar os dados do Banco de Dados Online. \nMotivo: " + e.message + "\n\nO sistema exibirá dados locais temporários.");
+        
         const localData = localStorage.getItem('sales_data');
-        if (localData) vendas = JSON.parse(localData);
+        if (localData) {
+            vendas = JSON.parse(localData);
+            // Garante que cada venda local tenha um ID para não quebrar o botão
+            vendas = vendas.map((v, index) => ({
+                ...v,
+                id: v.id || v.ID || `local-${index}`
+            }));
+        }
     }
 
     return vendas;
@@ -83,15 +92,17 @@ export async function salvarVenda(vendaData, updateStats = true) {
         // Limpeza de campos undefined para o Firestore não reclamar
         Object.keys(vendaData).forEach(key => vendaData[key] === undefined && delete vendaData[key]);
 
-        if (vendaData.id && vendaData.id.length > 15) { // IDs do Firestore são longos
-            const docRef = doc(db, COLLECTION_NAME, vendaData.id);
-            const id = vendaData.id;
+        if (vendaData.id && vendaData.id.trim() !== "") { 
+            const docId = vendaData.id;
             const dataToUpdate = { ...vendaData };
             delete dataToUpdate.id; 
+            const docRef = doc(db, COLLECTION_NAME, docId);
             await updateDoc(docRef, dataToUpdate);
+            console.log("✅ Venda atualizada no Firestore:", docId);
         } else {
-            if (vendaData.id) delete vendaData.id; 
+            if (vendaData.hasOwnProperty('id')) delete vendaData.id; 
             await addDoc(vendasRef, vendaData);
+            console.log("✅ Nova venda criada no Firestore.");
         }
         
         if (updateStats) {
@@ -118,13 +129,22 @@ export async function getVenda(id) {
 }
 
 export async function excluirVenda(id) {
+    if (!id) {
+        console.error("ID inválido para exclusão");
+        return false;
+    }
     try {
         const docRef = doc(db, COLLECTION_NAME, id);
-        console.log("Deletando documento:", docRef.path);
+        console.log("🔥 Solicitando exclusão do documento:", id);
         await deleteDoc(docRef);
+        console.log("✅ Documento excluído com sucesso do Firestore.");
         return true;
     } catch (e) {
-        console.error("Erro ao excluir:", e);
+        console.error("❌ Erro fatal ao excluir do Firestore:", e);
+        // Tenta alertar o motivo se possível (ex: falta de permissão)
+        if (e.code === 'permission-denied') {
+            alert("Erro: Você não tem permissão para excluir esta venda.");
+        }
         return false;
     }
 }
@@ -272,9 +292,15 @@ function renderTables(vendas) {
                     <td><span class="badge badge-${statusClass}">${status}</span></td>
                     <td>
                         <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-sm btn-primary action-edit" data-id="${v.id}"><span class="material-symbols-outlined" style="font-size: 16px;">edit</span></button>
-                            <button class="btn btn-sm btn-warning action-status" data-id="${v.id}" style="background-color: #f59e0b; color: white; border: none;"><span class="material-symbols-outlined" style="font-size: 16px;">published_with_changes</span></button>
-                            <button class="btn btn-sm btn-danger action-delete" data-id="${v.id}" style="background-color: #ef4444; color: white; border: none;"><span class="material-symbols-outlined" style="font-size: 16px;">delete</span></button>
+                            <button class="btn btn-sm btn-primary action-edit" data-vendaid="${v.id}" title="Editar Venda">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>
+                            </button>
+                            <button class="btn btn-sm btn-warning action-status" data-vendaid="${v.id}" title="Alterar Status" style="background-color: #f59e0b; color: white; border: none;">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">published_with_changes</span>
+                            </button>
+                            <button class="btn btn-sm btn-danger action-delete" data-vendaid="${v.id}" title="Excluir Venda" style="background-color: #ef4444; color: white; border: none;">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+                            </button>
                         </div>
                     </td>
                 `;
@@ -314,14 +340,16 @@ function maskCPF(cpf) {
 }
 
 function formatDate(dateStr) {
-    if (!dateStr) return '---';
+    if (!dateStr || dateStr === '-') return dateStr;
+    if (dateStr.includes('/')) return dateStr;
     try {
+        const parts = dateStr.split('-');
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        
         const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return dateStr;
-        return date.toLocaleDateString('pt-BR');
-    } catch {
-        return dateStr;
-    }
+        if (!isNaN(date.getTime())) return date.toLocaleDateString('pt-BR');
+    } catch(e) {}
+    return dateStr;
 }
 
 function maskPhone(phone) {
@@ -329,15 +357,3 @@ function maskPhone(phone) {
     const clean = phone.replace(/\D/g, '');
     return clean.length >= 10 ? `(***) *****-${clean.slice(-4)}` : phone;
 }
-
-function formatDate(dateStr) {
-    if (!dateStr || dateStr === '-') return dateStr;
-    if (dateStr.includes('/')) return dateStr;
-    try {
-        const parts = dateStr.split('-');
-        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    } catch(e) {}
-    return dateStr;
-}
-
-document.addEventListener('DOMContentLoaded', atualizarEstatisticas);
