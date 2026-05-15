@@ -22,24 +22,27 @@ export async function carregarVendas() {
     const user = getCurrentUser();
     let vendas = [];
 
+
     try {
         const vendasRef = collection(db, COLLECTION_NAME);
-        let q = query(vendasRef, orderBy('dataVenda', 'desc'));
-
-        // Filtro por Vendedor (Obrigatório para Vendedores)
-        if (user && user.role === 'Vendedor') {
-            q = query(vendasRef, where('vendedor', '==', user.name), orderBy('dataVenda', 'desc'));
-        }
-        
-        // Filtro por Vendedor (Opcional para Administradores via UI)
-        if (user && user.role === 'Administrador' && window.activeSellerFilter) {
-            q = query(vendasRef, where('vendedor', '==', window.activeSellerFilter), orderBy('dataVenda', 'desc'));
+        let q;
+        if (user.role === 'Administrador') {
+            q = query(vendasRef); // Simplificado (sem orderBy por enquanto para evitar erro de índice)
+            if (window.activeSellerFilter) {
+                q = query(vendasRef, where('vendedor', '==', window.activeSellerFilter));
+            }
+        } else {
+            q = query(vendasRef, where('vendedor', '==', user.name));
         }
 
         const querySnapshot = await getDocs(q);
+        const vendas = [];
         querySnapshot.forEach((doc) => {
             vendas.push({ id: doc.id, ...doc.data() });
         });
+        
+        // Ordenar localmente para evitar necessidade de índices compostos no Firestore
+        vendas.sort((a, b) => new Date(b.dataVenda) - new Date(a.dataVenda));
 
         // Se o banco estiver vazio, tenta carregar o backup local uma vez (migração)
         if (vendas.length === 0 && !window.migratedOnce) {
@@ -108,8 +111,9 @@ export async function getVenda(id) {
 
 export async function excluirVenda(id) {
     try {
-        await deleteDoc(doc(db, COLLECTION_NAME, id));
-        await atualizarEstatisticas();
+        const docRef = doc(db, COLLECTION_NAME, id);
+        console.log("Deletando documento:", docRef.path);
+        await deleteDoc(docRef);
         return true;
     } catch (e) {
         console.error("Erro ao excluir:", e);

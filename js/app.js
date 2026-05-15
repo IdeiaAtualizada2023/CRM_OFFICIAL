@@ -280,7 +280,16 @@ function setupGlobalEventListeners() {
                     document.querySelector('.nav-item[data-target="new-sale"]').click();
                 }
             } else if (btn.classList.contains('action-delete')) {
-                if (confirm('Excluir venda?')) await excluirVenda(id);
+                if (confirm('Tem certeza que deseja excluir esta venda permanentemente?')) {
+                    console.log("Tentando excluir venda com ID:", id);
+                    const sucesso = await excluirVenda(id);
+                    if (sucesso) {
+                        alert("✅ Venda excluída com sucesso!");
+                        await atualizarEstatisticas(); // Força atualização da lista
+                    } else {
+                        alert("❌ Erro ao excluir a venda. Tente novamente.");
+                    }
+                }
             } else if (btn.classList.contains('action-status')) {
                 await toggleStatusVenda(id);
             } else if (btn.classList.contains('action-view')) {
