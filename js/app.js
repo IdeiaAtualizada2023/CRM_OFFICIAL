@@ -159,14 +159,14 @@ function setupGlobalEventListeners() {
 
             try {
                 if (userId) {
-                    atualizarUsuario(userId, userData);
+                    await atualizarUsuario(userId, userData);
                     alert('Usuário atualizado!');
                 } else {
-                    cadastrarUsuario(userData);
+                    await cadastrarUsuario(userData);
                     alert('Usuário cadastrado!');
                 }
                 modalUser.classList.remove('active');
-                renderUsersTable();
+                await renderUsersTable();
                 updateSellerSelect();
                 renderUserSwitcher();
             } catch (err) {
@@ -473,16 +473,21 @@ async function renderUsersTable() {
         btn.onclick = async () => {
             const u = await buscarUsuarioPorId(btn.dataset.id);
             if (u) {
+                const form = document.getElementById('new-user-form');
                 document.getElementById('edit-user-id').value = u.id;
-                document.querySelector('[name="name"]').value = u.name;
-                document.querySelector('[name="email"]').value = u.email;
-                document.querySelector('[name="cpf"]').value = u.cpf || '';
-                document.querySelector('[name="cod"]').value = u.cod || '';
-                document.querySelector('[name="role"]').value = u.role;
-                document.querySelector('[name="password"]').value = u.password || '';
+                form.querySelector('[name="name"]').value = u.name || '';
+                form.querySelector('[name="email"]').value = u.email || '';
+                form.querySelector('[name="cpf"]').value = u.cpf || '';
+                form.querySelector('[name="cod"]').value = u.cod || '';
+                form.querySelector('[name="role"]').value = u.role || 'Vendedor';
+                form.querySelector('[name="password"]').value = u.password || '';
+                
                 if (u.foto) {
                     document.getElementById('photo-preview').innerHTML = `<img src="${u.foto}" style="width: 100%; height: 100%; object-fit: cover;">`;
                     window.tempUserPhoto = u.foto;
+                } else {
+                    document.getElementById('photo-preview').innerHTML = '<span class="material-symbols-outlined" style="font-size: 40px; color: #94a3b8;">person</span>';
+                    window.tempUserPhoto = null;
                 }
                 document.getElementById('modal-user').classList.add('active');
             }
