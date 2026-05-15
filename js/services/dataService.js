@@ -119,6 +119,9 @@ export async function getVenda(id) {
         }
     } catch (e) {
         console.error("Erro ao buscar venda:", e);
+        if (e.code === 'permission-denied') {
+            alert("❌ Erro de Permissão ao buscar dados: O domínio rajacrm.site pode não estar autorizado no Firebase ou sua sessão expirou.");
+        }
     }
     return null;
 }
@@ -153,11 +156,14 @@ export async function toggleStatusVenda(id) {
             
             const docRef = doc(db, COLLECTION_NAME, id);
             await updateDoc(docRef, { status: newStatus });
-            await atualizarEstatisticas();
+            return true;
         }
-        return true;
+        return false;
     } catch (e) {
         console.error("Erro ao mudar status:", e);
+        if (e.code === 'permission-denied') {
+            alert("❌ Erro de Permissão: O Firebase bloqueou a alteração. Verifique se você está logado corretamente e se o domínio rajacrm.site está autorizado.");
+        }
         return false;
     }
 }

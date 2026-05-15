@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 2. Inicialização de Componentes
     try {
+        setupSidebarVisibility();
         updateSellerSelect();
         renderUsersTable();
         setupAdminFilters();
@@ -103,7 +104,11 @@ function setupGlobalEventListeners() {
             }
 
             if (target === 'new-sale') {
-                resetNewSaleForm();
+                // Só reseta se NÃO estivermos em modo de edição (se o form-title for o padrão)
+                const title = document.getElementById('form-title').innerText;
+                if (title === 'Registrar Nova Venda') {
+                    resetNewSaleForm();
+                }
             }
 
             navItems.forEach(nav => nav.classList.remove('active'));
@@ -317,10 +322,11 @@ function setupGlobalEventListeners() {
                 btn.disabled = true;
                 const sucesso = await toggleStatusVenda(id);
                 if (sucesso) {
-                    alert("Status alterado com sucesso.");
+                    // Removi o alert de sucesso para ficar mais profissional, 
+                    // mas mantive o recarregamento dos dados.
                     await atualizarEstatisticas();
                 } else {
-                    alert("Erro ao alterar status no Firebase.");
+                    // O alerta de erro agora vem de dentro do dataService.js se for permissão
                 }
                 btn.style.opacity = '1';
                 btn.disabled = false;
@@ -615,11 +621,28 @@ function setupAdminFilters() {
     }
 }
 
+function setupSidebarVisibility() {
+    const user = getCurrentUser();
+    const navUsers = document.getElementById('nav-users');
+    if (navUsers) {
+        // Se não for Admin, esconde o botão de Usuários do menu lateral
+        navUsers.style.display = user.role === 'Administrador' ? 'flex' : 'none';
+    }
+}
+
 async function renderUserSwitcher() {
     const cont = document.getElementById('user-list-container');
     if (!cont) return;
-    const users = await listarUsuarios();
+    
+    let users = await listarUsuarios();
     const current = getCurrentUser();
+    
+    // REGRA DE PRIVACIDADE:
+    // Se não for Admin, só mostra o próprio usuário na lista
+    if (current.role !== 'Administrador') {
+        users = users.filter(u => u.id === current.id);
+    }
+    
     cont.innerHTML = users.map(u => `
         <button class="btn-switch-user" data-id="${u.id}" style="width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid #eee; background: #fff; border-radius: 8px; margin-bottom: 5px; cursor: pointer;">
             ${u.foto ? `<img src="${u.foto}" style="width: 28px; height: 28px; border-radius: 50%;">` : '<span class="material-symbols-outlined">account_circle</span>'}
@@ -627,7 +650,7 @@ async function renderUserSwitcher() {
                 <div style="font-weight: 600;">${u.name}</div>
                 <div style="font-size: 0.7rem;">${u.role}</div>
             </div>
-            <span class="material-symbols-outlined" style="font-size: 16px;">${current.role === 'Administrador' ? 'visibility' : 'login'}</span>
+            <span class="material-symbols-outlined" style="font-size: 16px;">${current.role === 'Administrador' ? 'visibility' : 'check_circle'}</span>
         </button>
     `).join('');
 
