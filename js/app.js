@@ -134,6 +134,13 @@ function setupGlobalEventListeners() {
             console.log("Abrindo modal de usuário...");
             document.getElementById('edit-user-id').value = '';
             if (newUserForm) newUserForm.reset();
+            
+            // Reset visibility
+            const passInput = document.getElementById('user-password');
+            const toggleBtn = document.getElementById('toggle-password');
+            if (passInput) passInput.type = 'password';
+            if (toggleBtn) toggleBtn.querySelector('span').textContent = 'visibility';
+
             document.getElementById('photo-preview').innerHTML = '<span class="material-symbols-outlined" style="font-size: 40px; color: #94a3b8;">person</span>';
             window.tempUserPhoto = null;
             modalUser.classList.add('active');
@@ -408,6 +415,17 @@ function setupGlobalEventListeners() {
             });
         });
     }
+
+    // Toggle Visibilidade de Senha no Cadastro de Usuário
+    const togglePassBtn = document.getElementById('toggle-password');
+    const passInput = document.getElementById('user-password');
+    if (togglePassBtn && passInput) {
+        togglePassBtn.addEventListener('click', () => {
+            const isPrivate = passInput.type === 'password';
+            passInput.type = isPrivate ? 'text' : 'password';
+            togglePassBtn.querySelector('span').textContent = isPrivate ? 'visibility_off' : 'visibility';
+        });
+    }
 }
 
 // Funções Auxiliares
@@ -498,6 +516,13 @@ async function renderUsersTable() {
                     document.getElementById('photo-preview').innerHTML = '<span class="material-symbols-outlined" style="font-size: 40px; color: #94a3b8;">person</span>';
                     window.tempUserPhoto = null;
                 }
+
+                // Reset visibility ao editar
+                const passInput = document.getElementById('user-password');
+                const toggleBtn = document.getElementById('toggle-password');
+                if (passInput) passInput.type = 'password';
+                if (toggleBtn) toggleBtn.querySelector('span').textContent = 'visibility';
+
                 document.getElementById('modal-user').classList.add('active');
             }
         };
