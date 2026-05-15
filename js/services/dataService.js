@@ -18,66 +18,54 @@ import { getCurrentUser } from './authService.js';
 const COLLECTION_NAME = 'vendas';
 
 export async function carregarVendas() {
-    console.log("Carregando vendas do Firestore...");
-    const user = getCurrentUser();
+    console.log("Iniciando carga de vendas (Firestore)...");
     let vendas = [];
-
+    const user = getCurrentUser();
 
     try {
         const vendasRef = collection(db, COLLECTION_NAME);
-        let q = query(vendasRef); // Consulta mais simples possível para evitar erros
+        let q = query(vendasRef);
 
-        if (user && user.role === 'Administrador') {
-            if (window.activeSellerFilter && window.activeSellerFilter !== 'Todos') {
-                q = query(vendasRef, where('vendedor', '==', window.activeSellerFilter));
-            }
-        } else if (user && user.role === 'Vendedor') {
+        // Aplicação de Filtros de Segurança
+        if (user && user.role === 'Vendedor') {
             q = query(vendasRef, where('vendedor', '==', user.name));
+        } else if (window.activeSellerFilter && window.activeSellerFilter !== 'Todos') {
+            q = query(vendasRef, where('vendedor', '==', window.activeSellerFilter));
         }
 
-        console.log("Executando busca no Firestore...");
         const querySnapshot = await getDocs(q);
         querySnapshot.forEach((doc) => {
-            vendas.push({ id: doc.id, ...doc.data() });
-        });
-        
-        console.log(`Sucesso: ${vendas.length} vendas encontradas.`);
-
-        // Ordenar localmente com tratamento para datas inválidas
-        vendas.sort((a, b) => {
-            const dateA = new Date(a.dataVenda || 0);
-            const dateB = new Date(b.dataVenda || 0);
-            return dateB - dateA;
+            const data = doc.data();
+            vendas.push({ 
+                ...data,
+                id: doc.id // ID vindo do Firebase
+            });
         });
 
-        // Migração apenas se realmente não houver nada no banco e nada local
+        console.log(`Carga finalizada: ${vendas.length} registros.`);
+
+        // Migração automática (apenas se o banco estiver zerado)
         if (vendas.length === 0 && !window.migratedOnce) {
+            window.migratedOnce = true;
             const localData = localStorage.getItem('sales_data');
             if (localData) {
-                console.log("Iniciando migração de emergência...");
                 const backup = JSON.parse(localData);
-                if (backup.length > 0) {
-                    window.migratedOnce = true;
-                    for (const item of backup) {
-                        await salvarVenda(item, false);
-                    }
-                    return carregarVendas();
+                console.log(`Migrando ${backup.length} registros locais...`);
+                for (const item of backup) {
+                    await salvarVenda(item, false);
                 }
+                return await carregarVendas(); // Recarrega após migrar
             }
         }
 
     } catch (e) {
-        console.error("Erro ao carregar do Firestore:", e);
-        // Alerta o usuário sobre o problema de conexão
-        alert("⚠️ Atenção: Não foi possível carregar os dados do Banco de Dados Online. \nMotivo: " + e.message + "\n\nO sistema exibirá dados locais temporários.");
-        
+        console.error("Erro Crítico Firestore:", e);
+        // Fallback local se o servidor estiver inacessível
         const localData = localStorage.getItem('sales_data');
         if (localData) {
-            vendas = JSON.parse(localData);
-            // Garante que cada venda local tenha um ID para não quebrar o botão
-            vendas = vendas.map((v, index) => ({
+            vendas = JSON.parse(localData).map((v, i) => ({
                 ...v,
-                id: v.id || v.ID || `local-${index}`
+                id: v.id || v.ID || `offline-${i}`
             }));
         }
     }
@@ -267,39 +255,46 @@ function renderLivesChart(vendas) {
 }
 
 function renderTables(vendas) {
-    console.log("Renderizando tabelas com", vendas.length, "vendas");
-    const allSalesTable = document.querySelector('#all-sales-table tbody');
+    console.log("Renderizando tabelas profissionais...");
     
+    // Ordenação Decrescente (Mais recentes primeiro)
+    const vendasOrdenadas = [...vendas].sort((a, b) => {
+        const dateA = a.dataVenda ? new Date(a.dataVenda) : new Date(0);
+        const dateB = b.dataVenda ? new Date(b.dataVenda) : new Date(0);
+        return dateB - dateA;
+    });
+
+    const allSalesTable = document.querySelector('#all-sales-table tbody');
     if (allSalesTable) {
         allSalesTable.innerHTML = '';
-        if (!vendas || vendas.length === 0) {
-            allSalesTable.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: var(--text-muted);">📭 Nenhuma venda encontrada no banco de dados.</td></tr>';
+        if (!vendasOrdenadas || vendasOrdenadas.length === 0) {
+            allSalesTable.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: #94a3b8;">Nenhuma venda encontrada.</td></tr>';
         } else {
-            vendas.forEach(v => {
+            vendasOrdenadas.forEach(v => {
                 const tr = document.createElement('tr');
                 const status = v.status || 'Pendente';
                 const statusClass = status.toLowerCase() === 'aprovado' ? 'success' : (status.toLowerCase() === 'cancelado' ? 'danger' : 'warning');
                 
                 tr.innerHTML = `
-                    <td>${formatDate(v.dataVenda || v.Data)}</td>
+                    <td>${formatDate(v.dataVenda)}</td>
                     <td style="font-weight: 600; color: #4361ee;">${v.numeroContrato || '---'}</td>
-                    <td>${v.nome || v.Nome}</td>
-                    <td>${maskCPF(v.cpfCnpj || v.cpf)}</td>
-                    <td>${v.email || '---'}</td>
+                    <td style="font-weight: 500;">${v.nome}</td>
+                    <td>${maskCPF(v.cpfCnpj)}</td>
+                    <td style="font-size: 0.85rem; color: #64748b;">${v.email}</td>
                     <td>${maskPhone(v.telefone)}</td>
                     <td>${v.estado || '---'}</td>
                     <td>${v.cidade || '---'}</td>
                     <td><span class="badge badge-${statusClass}">${status}</span></td>
                     <td>
                         <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-sm btn-primary action-edit" data-vendaid="${v.id}" title="Editar Venda">
-                                <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>
+                            <button class="btn btn-sm btn-primary action-edit" data-vendaid="${v.id}" title="Editar Venda" style="padding: 6px; border-radius: 8px;">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
                             </button>
-                            <button class="btn btn-sm btn-warning action-status" data-vendaid="${v.id}" title="Alterar Status" style="background-color: #f59e0b; color: white; border: none;">
-                                <span class="material-symbols-outlined" style="font-size: 16px;">published_with_changes</span>
+                            <button class="btn btn-sm btn-warning action-status" data-vendaid="${v.id}" title="Alterar Status" style="background-color: #f59e0b; color: white; border: none; padding: 6px; border-radius: 8px;">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">published_with_changes</span>
                             </button>
-                            <button class="btn btn-sm btn-danger action-delete" data-vendaid="${v.id}" title="Excluir Venda" style="background-color: #ef4444; color: white; border: none;">
-                                <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+                            <button class="btn btn-sm btn-danger action-delete" data-vendaid="${v.id}" title="Excluir Venda" style="background-color: #ef4444; color: white; border: none; padding: 6px; border-radius: 8px;">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
                             </button>
                         </div>
                     </td>
@@ -312,20 +307,18 @@ function renderTables(vendas) {
     const recentSalesTable = document.querySelector('#recent-sales-table tbody');
     if (recentSalesTable) {
         recentSalesTable.innerHTML = '';
-        if (vendas && vendas.length > 0) {
-            vendas.slice(0, 5).forEach(v => {
-                const tr = document.createElement('tr');
-                const status = v.status || 'Pendente';
-                const statusClass = status.toLowerCase() === 'aprovado' ? 'success' : (status.toLowerCase() === 'cancelado' ? 'danger' : 'warning');
-                tr.innerHTML = `
-                    <td>${formatDate(v.dataVenda || v.Data)}</td>
-                    <td>${v.nome || v.Nome}</td>
-                    <td style="font-family: 'Courier New', monospace; font-weight: bold;">${formatCurrency(parseFloat(v.valorPlano || v.valor || 0))}</td>
-                    <td><span class="badge badge-${statusClass}">${status}</span></td>
-                `;
-                recentSalesTable.appendChild(tr);
-            });
-        }
+        vendasOrdenadas.slice(0, 5).forEach(v => {
+            const tr = document.createElement('tr');
+            const status = v.status || 'Pendente';
+            const statusClass = status.toLowerCase() === 'aprovado' ? 'success' : (status.toLowerCase() === 'cancelado' ? 'danger' : 'warning');
+            tr.innerHTML = `
+                <td>${formatDate(v.dataVenda)}</td>
+                <td style="font-weight: 500;">${v.nome}</td>
+                <td style="font-weight: 600; color: #059669;">${v.vendedor || '---'}</td>
+                <td><span class="badge badge-${statusClass}">${status}</span></td>
+            `;
+            recentSalesTable.appendChild(tr);
+        });
     }
 }
 
