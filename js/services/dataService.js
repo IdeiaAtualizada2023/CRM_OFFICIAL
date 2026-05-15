@@ -25,36 +25,44 @@ export async function carregarVendas() {
 
     try {
         const vendasRef = collection(db, COLLECTION_NAME);
-        let q;
-        if (user.role === 'Administrador') {
-            q = query(vendasRef); // Simplificado (sem orderBy por enquanto para evitar erro de índice)
-            if (window.activeSellerFilter) {
+        let q = query(vendasRef); // Consulta mais simples possível para evitar erros
+
+        if (user && user.role === 'Administrador') {
+            if (window.activeSellerFilter && window.activeSellerFilter !== 'Todos') {
                 q = query(vendasRef, where('vendedor', '==', window.activeSellerFilter));
             }
-        } else {
+        } else if (user && user.role === 'Vendedor') {
             q = query(vendasRef, where('vendedor', '==', user.name));
         }
 
+        console.log("Executando busca no Firestore...");
         const querySnapshot = await getDocs(q);
-        const vendas = [];
         querySnapshot.forEach((doc) => {
             vendas.push({ id: doc.id, ...doc.data() });
         });
         
-        // Ordenar localmente para evitar necessidade de índices compostos no Firestore
-        vendas.sort((a, b) => new Date(b.dataVenda) - new Date(a.dataVenda));
+        console.log(`Sucesso: ${vendas.length} vendas encontradas.`);
 
-        // Se o banco estiver vazio, tenta carregar o backup local uma vez (migração)
+        // Ordenar localmente com tratamento para datas inválidas
+        vendas.sort((a, b) => {
+            const dateA = new Date(a.dataVenda || 0);
+            const dateB = new Date(b.dataVenda || 0);
+            return dateB - dateA;
+        });
+
+        // Migração apenas se realmente não houver nada no banco e nada local
         if (vendas.length === 0 && !window.migratedOnce) {
             const localData = localStorage.getItem('sales_data');
             if (localData) {
-                window.migratedOnce = true; // Marca ANTES de começar para evitar loop
-                console.log("Migrando dados locais para o Firestore...");
+                console.log("Iniciando migração de emergência...");
                 const backup = JSON.parse(localData);
-                for (const item of backup) {
-                    await salvarVenda(item, false); // Passamos false para não atualizar estatísticas em loop
+                if (backup.length > 0) {
+                    window.migratedOnce = true;
+                    for (const item of backup) {
+                        await salvarVenda(item, false);
+                    }
+                    return carregarVendas();
                 }
-                return carregarVendas(); // Recarrega do Firestore agora com dados
             }
         }
 
@@ -239,51 +247,59 @@ function renderLivesChart(vendas) {
 }
 
 function renderTables(vendas) {
+    console.log("Renderizando tabelas com", vendas.length, "vendas");
     const allSalesTable = document.querySelector('#all-sales-table tbody');
+    
     if (allSalesTable) {
         allSalesTable.innerHTML = '';
-        vendas.forEach(v => {
-            const tr = document.createElement('tr');
-            const status = v.status || 'Pendente';
-            const statusClass = status.toLowerCase() === 'aprovado' ? 'success' : (status.toLowerCase() === 'cancelado' ? 'danger' : 'warning');
-            
-            tr.innerHTML = `
-                <td>${formatDate(v.dataVenda || v.Data)}</td>
-                <td style="font-weight: 600; color: #4361ee;">${v.numeroContrato || '---'}</td>
-                <td>${v.nome || v.Nome}</td>
-                <td>${maskCPF(v.cpfCnpj || v.cpf)}</td>
-                <td>${v.email || '---'}</td>
-                <td>${maskPhone(v.telefone)}</td>
-                <td>${v.estado || '---'}</td>
-                <td>${v.cidade || '---'}</td>
-                <td><span class="badge badge-${statusClass}">${status}</span></td>
-                <td>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn btn-sm btn-primary action-edit" data-id="${v.id}"><span class="material-symbols-outlined" style="font-size: 16px;">edit</span></button>
-                        <button class="btn btn-sm btn-warning action-status" data-id="${v.id}" style="background-color: #f59e0b; color: white; border: none;"><span class="material-symbols-outlined" style="font-size: 16px;">published_with_changes</span></button>
-                        <button class="btn btn-sm btn-danger action-delete" data-id="${v.id}" style="background-color: #ef4444; color: white; border: none;"><span class="material-symbols-outlined" style="font-size: 16px;">delete</span></button>
-                    </div>
-                </td>
-            `;
-            allSalesTable.appendChild(tr);
-        });
+        if (!vendas || vendas.length === 0) {
+            allSalesTable.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: var(--text-muted);">📭 Nenhuma venda encontrada no banco de dados.</td></tr>';
+        } else {
+            vendas.forEach(v => {
+                const tr = document.createElement('tr');
+                const status = v.status || 'Pendente';
+                const statusClass = status.toLowerCase() === 'aprovado' ? 'success' : (status.toLowerCase() === 'cancelado' ? 'danger' : 'warning');
+                
+                tr.innerHTML = `
+                    <td>${formatDate(v.dataVenda || v.Data)}</td>
+                    <td style="font-weight: 600; color: #4361ee;">${v.numeroContrato || '---'}</td>
+                    <td>${v.nome || v.Nome}</td>
+                    <td>${maskCPF(v.cpfCnpj || v.cpf)}</td>
+                    <td>${v.email || '---'}</td>
+                    <td>${maskPhone(v.telefone)}</td>
+                    <td>${v.estado || '---'}</td>
+                    <td>${v.cidade || '---'}</td>
+                    <td><span class="badge badge-${statusClass}">${status}</span></td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-sm btn-primary action-edit" data-id="${v.id}"><span class="material-symbols-outlined" style="font-size: 16px;">edit</span></button>
+                            <button class="btn btn-sm btn-warning action-status" data-id="${v.id}" style="background-color: #f59e0b; color: white; border: none;"><span class="material-symbols-outlined" style="font-size: 16px;">published_with_changes</span></button>
+                            <button class="btn btn-sm btn-danger action-delete" data-id="${v.id}" style="background-color: #ef4444; color: white; border: none;"><span class="material-symbols-outlined" style="font-size: 16px;">delete</span></button>
+                        </div>
+                    </td>
+                `;
+                allSalesTable.appendChild(tr);
+            });
+        }
     }
 
     const recentSalesTable = document.querySelector('#recent-sales-table tbody');
     if (recentSalesTable) {
         recentSalesTable.innerHTML = '';
-        vendas.slice(0, 5).forEach(v => {
-            const tr = document.createElement('tr');
-            const status = v.status || 'Pendente';
-            const statusClass = status.toLowerCase() === 'aprovado' ? 'success' : (status.toLowerCase() === 'cancelado' ? 'danger' : 'warning');
-            tr.innerHTML = `
-                <td>${formatDate(v.dataVenda || v.Data)}</td>
-                <td>${v.nome || v.Nome}</td>
-                <td style="font-family: 'Courier New', monospace; font-weight: bold;">${formatCurrency(parseFloat(v.valorPlano || v.valor || 0))}</td>
-                <td><span class="badge badge-${statusClass}">${status}</span></td>
-            `;
-            recentSalesTable.appendChild(tr);
-        });
+        if (vendas && vendas.length > 0) {
+            vendas.slice(0, 5).forEach(v => {
+                const tr = document.createElement('tr');
+                const status = v.status || 'Pendente';
+                const statusClass = status.toLowerCase() === 'aprovado' ? 'success' : (status.toLowerCase() === 'cancelado' ? 'danger' : 'warning');
+                tr.innerHTML = `
+                    <td>${formatDate(v.dataVenda || v.Data)}</td>
+                    <td>${v.nome || v.Nome}</td>
+                    <td style="font-family: 'Courier New', monospace; font-weight: bold;">${formatCurrency(parseFloat(v.valorPlano || v.valor || 0))}</td>
+                    <td><span class="badge badge-${statusClass}">${status}</span></td>
+                `;
+                recentSalesTable.appendChild(tr);
+            });
+        }
     }
 }
 
@@ -295,6 +311,17 @@ function maskCPF(cpf) {
     if (!cpf || cpf === '-') return cpf;
     const clean = cpf.replace(/\D/g, '');
     return clean.length >= 11 ? `***.***.***-${clean.slice(-2)}` : cpf;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '---';
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr;
+        return date.toLocaleDateString('pt-BR');
+    } catch {
+        return dateStr;
+    }
 }
 
 function maskPhone(phone) {
