@@ -313,7 +313,17 @@ function setupGlobalEventListeners() {
                     }
                 }
             } else if (btn.classList.contains('action-status')) {
-                await toggleStatusVenda(id);
+                btn.style.opacity = '0.5';
+                btn.disabled = true;
+                const sucesso = await toggleStatusVenda(id);
+                if (sucesso) {
+                    alert("Status alterado com sucesso.");
+                    await atualizarEstatisticas();
+                } else {
+                    alert("Erro ao alterar status no Firebase.");
+                }
+                btn.style.opacity = '1';
+                btn.disabled = false;
             } else if (btn.classList.contains('action-view')) {
                 const venda = await getVenda(id);
                 if (venda) exibirDetalhesVenda(venda);
@@ -640,35 +650,76 @@ async function renderUserSwitcher() {
 }
 
 function preencherFormVenda(v) {
+    console.log("Preenchendo formulário com dados da venda:", v);
     const form = document.getElementById('new-sale-form');
-    document.getElementById('venda-id').value = v.id;
+    
+    // Campo oculto para o ID
+    const idInput = document.getElementById('venda-id');
+    if (idInput) idInput.value = v.id || '';
+    
     document.getElementById('form-title').innerText = 'Editar Venda';
     
     // Limpar campos de dependentes antes de preencher
     const container = document.getElementById('dependentes-container');
     if (container) container.innerHTML = '';
 
-    for (const key in v) {
-        const input = form.querySelector(`[name="${key}"]`);
-        if (input && input.type !== 'file' && input.type !== 'checkbox' && input.type !== 'radio') {
-            input.value = v[key];
+    // Mapeamento manual para garantir que nada fique vazio
+    const setVal = (name, val) => {
+        const el = form.querySelector(`[name="${name}"]`);
+        if (el) {
+            el.value = val || '';
+            // Dispara evento de mudança para disparar gatilhos (ex: busca de cidades)
+            el.dispatchEvent(new Event('change'));
         }
+    };
+
+    setVal('vendedor', v.vendedor);
+    setVal('nome', v.nome);
+    setVal('email', v.email);
+    setVal('telefone', v.telefone);
+    setVal('cpfCnpj', v.cpfCnpj);
+    setVal('numeroContrato', v.numeroContrato);
+    setVal('dataVenda', v.dataVenda);
+    setVal('tipoPlano', v.tipoPlano);
+    setVal('valorPlano', v.valorPlano);
+    setVal('valorPago', v.valorPago);
+    setVal('tipoPagamento', v.tipoPagamento);
+    setVal('status', v.status);
+    setVal('vencimento1', v.vencimento1);
+    setVal('pagamento1', v.pagamento1);
+    setVal('vencimento2', v.vencimento2);
+    setVal('pagamento2', v.pagamento2);
+    setVal('vencimento3', v.vencimento3);
+    setVal('pagamento3', v.pagamento3);
+
+    // Estado e Cidade (Requer cuidado especial por causa do carregamento via API)
+    const estadoEl = document.getElementById('estado');
+    if (estadoEl) {
+        estadoEl.value = v.estado || '';
+        // Disparar o change manualmente para carregar as cidades
+        estadoEl.dispatchEvent(new Event('change'));
+        
+        // Pequeno atraso para dar tempo da API do IBGE carregar as cidades
+        setTimeout(() => {
+            const cidadeEl = document.getElementById('cidade');
+            if (cidadeEl) cidadeEl.value = v.cidade || '';
+        }, 800);
     }
 
-    // Preencher Papel do Cliente
+    // Papel do Cliente (Radios)
     const papelRadios = form.querySelectorAll('input[name="papelCliente"]');
     papelRadios.forEach(r => {
         if (r.value === v.papelCliente) r.checked = true;
     });
 
-    // Preencher Tipo de Contrato
+    // Tipo de Contrato (Radios)
     const contratoRadios = form.querySelectorAll('input[name="tipoContrato"]');
     contratoRadios.forEach(r => {
         if (r.value === v.tipoContrato) r.checked = true;
     });
 
-    // Preencher Dependentes
-    if (v.dependentes && v.dependentes.length > 0) {
+    // Dependentes
+    if (v.dependentes && Array.isArray(v.dependentes)) {
         v.dependentes.forEach(d => {
             addDependenteRow(d.nome, d.dataNascimento, d.cpf, d.papel || 'Titular');
         });
