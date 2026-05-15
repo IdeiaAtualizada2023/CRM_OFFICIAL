@@ -96,8 +96,12 @@ export async function salvarVenda(vendaData, updateStats = true) {
             console.log("✅ Venda atualizada no Firestore:", docId);
         } else {
             if (vendaData.hasOwnProperty('id')) delete vendaData.id; 
-            await addDoc(vendasRef, vendaData);
-            console.log("✅ Nova venda criada no Firestore.");
+            
+            // CRIANDO ID AMIGÁVEL: Usa o Número do Contrato como nome do documento no Firebase
+            const customId = vendaData.numeroContrato ? String(vendaData.numeroContrato).trim() : `venda-${Date.now()}`;
+            
+            await setDoc(doc(db, COLLECTION_NAME, customId), vendaData);
+            console.log("✅ Nova venda criada com ID de Contrato:", customId);
         }
         
         if (updateStats) {

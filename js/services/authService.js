@@ -208,16 +208,22 @@ export async function cadastrarUsuario(userData) {
 
         const id = userData.id;
         const dataToSave = { ...userData };
-        delete dataToSave.id; // Nunca salvar o campo ID dentro dos dados do documento
+        delete dataToSave.id;
 
         const usersRef = collection(db, COLLECTION_USERS);
         
+        // Se já tiver um ID (edição), usa ele. 
+        // Se for NOVO, cria um ID amigável baseado no e-mail ou nome.
         if (id && id.length > 5) {
             await setDoc(doc(db, COLLECTION_USERS, id), dataToSave);
             return { id, ...dataToSave };
         } else {
-            const docRef = await addDoc(usersRef, dataToSave);
-            return { id: docRef.id, ...dataToSave };
+            // CRIANDO ID AMIGÁVEL: Prioriza e-mail, se não tiver, usa o nome formatado
+            const customId = userData.email ? userData.email.toLowerCase() : userData.name.replace(/\s+/g, '-').toLowerCase();
+            
+            console.log("Criando usuário com ID Amigável:", customId);
+            await setDoc(doc(db, COLLECTION_USERS, customId), dataToSave);
+            return { id: customId, ...dataToSave };
         }
     } catch (e) {
         console.error("Erro ao cadastrar usuário:", e);
