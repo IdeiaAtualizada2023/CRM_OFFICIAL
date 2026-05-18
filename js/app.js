@@ -477,11 +477,11 @@ function setupGlobalEventListeners() {
         };
     }
 
-    // --- Máscaras de CPF/CNPJ e Telefone ---
-    const cpfCnpjInput = document.getElementById('cpfCnpj');
-    if (cpfCnpjInput) {
-        cpfCnpjInput.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não for dígito
+    // --- Delegação de Eventos para Máscaras ---
+    document.addEventListener('input', (e) => {
+        // Máscara de CPF e CNPJ (Campo principal)
+        if (e.target.classList.contains('cpf-cnpj-mask') || e.target.id === 'cpfCnpj') {
+            let value = e.target.value.replace(/\D/g, '');
             if (value.length <= 11) {
                 // Máscara de CPF: 000.000.000-00
                 value = value.replace(/(\d{3})(\d)/, '$1.$2');
@@ -489,62 +489,49 @@ function setupGlobalEventListeners() {
                 value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
             } else {
                 // Máscara de CNPJ: 00.000.000/0000-00
-                value = value.substring(0, 14); // Limita a 14 dígitos
+                value = value.substring(0, 14);
                 value = value.replace(/^(\d{2})(\d)/, '$1.$2');
                 value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
                 value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
                 value = value.replace(/(\d{4})(\d)/, '$1-$2');
             }
             e.target.value = value;
-        });
-    }
-
-    const telefoneInput = document.querySelector('input[name="telefone"]');
-    if (telefoneInput) {
-        telefoneInput.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/\D/g, ''); // Remove não dígitos
-            value = value.substring(0, 11); // Limita a 11 dígitos
-            if (value.length > 2) {
-                value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
-            }
-            if (value.length > 9) { // (00) 00000-0000
-                value = value.replace(/(\d{5})(\d)/, '$1-$2');
-            } else if (value.length > 8) { // (00) 0000-0000
-                value = value.replace(/(\d{4})(\d)/, '$1-$2');
-            }
-            e.target.value = value;
-        });
-    }
-
-    const userCpfInput = document.querySelector('input[name="cpf"].cpf-mask');
-    if (userCpfInput) {
-        userCpfInput.addEventListener('input', (e) => {
+        } 
+        // Máscara Apenas CPF (Dependentes, Usuários)
+        else if (e.target.classList.contains('cpf-mask')) {
             let value = e.target.value.replace(/\D/g, '');
             value = value.substring(0, 11);
             value = value.replace(/(\d{3})(\d)/, '$1.$2');
             value = value.replace(/(\d{3})(\d)/, '$1.$2');
             value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
             e.target.value = value;
-        });
-    }
-
-    // --- Máscara de Moeda (Valores) ---
-    const moneyInputs = document.querySelectorAll('.money-mask');
-    moneyInputs.forEach(input => {
-        input.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não for dígito
-            
+        }
+        // Máscara de Telefone
+        else if (e.target.classList.contains('telefone-mask') || e.target.name === 'telefone') {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.substring(0, 11);
+            if (value.length > 2) {
+                value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
+            }
+            if (value.length > 9) {
+                value = value.replace(/(\d{5})(\d)/, '$1-$2');
+            } else if (value.length > 8) {
+                value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            }
+            e.target.value = value;
+        }
+        // Máscara de Moeda
+        else if (e.target.classList.contains('money-mask')) {
+            let value = e.target.value.replace(/\D/g, '');
             if (value === '') {
                 e.target.value = '';
                 return;
             }
-
-            value = (parseInt(value, 10) / 100).toFixed(2); // Divide por 100 para ter os centavos
-            value = value.replace('.', ','); // Troca ponto por vírgula
-            value = value.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.'); // Adiciona o ponto de milhar
-
+            value = (parseInt(value, 10) / 100).toFixed(2);
+            value = value.replace('.', ',');
+            value = value.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
             e.target.value = 'R$ ' + value;
-        });
+        }
     });
 }
 
@@ -761,6 +748,8 @@ function preencherFormVenda(v) {
         const el = form.querySelector(`[name="${name}"]`);
         if (el) {
             el.value = val || '';
+            // Dispara input para acionar as máscaras dinâmicas
+            el.dispatchEvent(new Event('input', { bubbles: true }));
             // Dispara evento de mudança para disparar gatilhos (ex: busca de cidades)
             el.dispatchEvent(new Event('change'));
         }
@@ -990,4 +979,10 @@ function addDependenteRow(nome = '', dataNasc = '', cpf = '', papel = 'Titular')
 
     row.querySelector('.btn-remove-dep').onclick = () => row.remove();
     container.appendChild(row);
+
+    // Disparar input para formatar máscara caso venha preenchido (edição)
+    const cpfInput = row.querySelector('.cpf-mask');
+    if (cpfInput && cpfInput.value) {
+        cpfInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
 }
