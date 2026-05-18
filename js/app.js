@@ -234,7 +234,7 @@ function setupGlobalEventListeners() {
 
             try {
                 // Limpar campos de valor (remover R$ e converter vírgula para ponto se necessário)
-                const camposValor = ['pagamento1', 'pagamento2', 'pagamento3', 'valorEntrada'];
+                const camposValor = ['valorPlano', 'pagamento1', 'pagamento2', 'pagamento3', 'valorEntrada'];
                 camposValor.forEach(campo => {
                     if (vendaData[campo]) {
                         vendaData[campo] = vendaData[campo].replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
@@ -476,6 +476,76 @@ function setupGlobalEventListeners() {
             console.log("Toggle senha:", passInput.type);
         };
     }
+
+    // --- Máscaras de CPF/CNPJ e Telefone ---
+    const cpfCnpjInput = document.getElementById('cpfCnpj');
+    if (cpfCnpjInput) {
+        cpfCnpjInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não for dígito
+            if (value.length <= 11) {
+                // Máscara de CPF: 000.000.000-00
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            } else {
+                // Máscara de CNPJ: 00.000.000/0000-00
+                value = value.substring(0, 14); // Limita a 14 dígitos
+                value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+                value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+                value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            }
+            e.target.value = value;
+        });
+    }
+
+    const telefoneInput = document.querySelector('input[name="telefone"]');
+    if (telefoneInput) {
+        telefoneInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, ''); // Remove não dígitos
+            value = value.substring(0, 11); // Limita a 11 dígitos
+            if (value.length > 2) {
+                value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
+            }
+            if (value.length > 9) { // (00) 00000-0000
+                value = value.replace(/(\d{5})(\d)/, '$1-$2');
+            } else if (value.length > 8) { // (00) 0000-0000
+                value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            }
+            e.target.value = value;
+        });
+    }
+
+    const userCpfInput = document.querySelector('input[name="cpf"].cpf-mask');
+    if (userCpfInput) {
+        userCpfInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.substring(0, 11);
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d)/, '$1.$2');
+            value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            e.target.value = value;
+        });
+    }
+
+    // --- Máscara de Moeda (Valores) ---
+    const moneyInputs = document.querySelectorAll('.money-mask');
+    moneyInputs.forEach(input => {
+        input.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não for dígito
+            
+            if (value === '') {
+                e.target.value = '';
+                return;
+            }
+
+            value = (parseInt(value, 10) / 100).toFixed(2); // Divide por 100 para ter os centavos
+            value = value.replace('.', ','); // Troca ponto por vírgula
+            value = value.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.'); // Adiciona o ponto de milhar
+
+            e.target.value = 'R$ ' + value;
+        });
+    });
 }
 
 // Funções Auxiliares
@@ -704,16 +774,25 @@ function preencherFormVenda(v) {
     setVal('numeroContrato', v.numeroContrato);
     setVal('dataVenda', v.dataVenda);
     setVal('tipoPlano', v.tipoPlano);
-    setVal('valorPlano', v.valorPlano);
-    setVal('valorPago', v.valorPago);
+    const formatMoney = (val) => {
+        if (!val) return '';
+        let num = parseFloat(val);
+        if (isNaN(num)) return val;
+        let formatted = num.toFixed(2).replace('.', ',');
+        formatted = formatted.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+        return 'R$ ' + formatted;
+    };
+
+    setVal('valorPlano', formatMoney(v.valorPlano));
+    setVal('valorPago', formatMoney(v.valorPago));
     setVal('tipoPagamento', v.tipoPagamento);
     setVal('status', v.status);
     setVal('vencimento1', v.vencimento1);
-    setVal('pagamento1', v.pagamento1);
+    setVal('pagamento1', formatMoney(v.pagamento1));
     setVal('vencimento2', v.vencimento2);
-    setVal('pagamento2', v.pagamento2);
+    setVal('pagamento2', formatMoney(v.pagamento2));
     setVal('vencimento3', v.vencimento3);
-    setVal('pagamento3', v.pagamento3);
+    setVal('pagamento3', formatMoney(v.pagamento3));
 
     // Estado e Cidade (Requer cuidado especial por causa do carregamento via API)
     const estadoEl = document.getElementById('estado');
