@@ -93,18 +93,21 @@ async function getToken(callback) {
 /**
  * Create a calendar event for a payment
  */
-export async function createPaymentEvent(venda, numParcela, dataVencimento, valor) {
-    console.log(`📅 Criando evento para parcela ${numParcela}...`);
+export async function createPaymentEvent(venda, labelParcela, dataVencimento, valor) {
+    console.log(`📅 Criando evento para ${labelParcela}...`);
     
     // Formatar valor para moeda
     const valorFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+    
+    // Determinar o texto de exibição (ex: Parcela 1 ou Plano)
+    const labelExibicao = isNaN(labelParcela) ? labelParcela : `Parcela ${labelParcela}`;
     
     return new Promise((resolve, reject) => {
         getToken(async () => {
             try {
                 const event = {
-                    'summary': `💰 Vencimento: Parcela ${numParcela} - ${venda.nome}`,
-                    'description': `📄 Cliente: ${venda.nome}\n🔢 CPF: ${venda.cpfCnpj}\n💵 Valor da Parcela: ${valorFormatado}\n📝 Contrato: ${venda.numeroContrato || 'N/A'}\n\n🤖 Lembrete automático do CRM Amels.`,
+                    'summary': `💰 Vencimento: ${labelExibicao} - ${venda.nome}`,
+                    'description': `📄 Cliente: ${venda.nome}\n🔢 CPF: ${venda.cpfCnpj}\n💵 Valor: ${valorFormatado}\n📝 Contrato: ${venda.numeroContrato || 'N/A'}\n\n🤖 Lembrete automático do CRM Amels.`,
                     'start': {
                         'date': dataVencimento,
                         'timeZone': 'America/Sao_Paulo'

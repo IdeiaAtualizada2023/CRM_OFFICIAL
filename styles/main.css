@@ -369,6 +369,7 @@ body.loading-state {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    min-width: 0;
 }
 
 .form-group.full-width {
@@ -390,6 +391,8 @@ body.loading-state {
     font-size: 14px;
     outline: none;
     transition: border-color 0.2s;
+    width: 100%;
+    max-width: 100%;
 }
 
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
@@ -708,4 +711,49 @@ body.theme-dark .btn-google:hover {
 
 .sidebar-overlay.active {
     display: block;
+}
+
+/* Responsive Helper Classes & Grid Adjustments */
+.dependent-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 10px;
+}
+
+@media (max-width: 1024px) {
+    .main-content {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .card {
+        padding: 16px !important;
+    }
+    
+    .dependentes-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+    
+    .dependentes-header button {
+        justify-content: center !important;
+        width: 100% !important;
+    }
+
+    .dependent-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .form-actions {
+        flex-direction: column-reverse !important;
+        gap: 12px !important;
+    }
+    
+    .form-actions .btn {
+        width: 100% !important;
+        justify-content: center !important;
+    }
 }

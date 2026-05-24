@@ -773,6 +773,7 @@ function preencherFormVenda(v) {
     };
 
     setVal('valorPlano', formatMoney(v.valorPlano));
+    setVal('vencimentoPlano', v.vencimentoPlano);
     setVal('valorPago', formatMoney(v.valorPago));
     setVal('tipoPagamento', v.tipoPagamento);
     setVal('status', v.status);
@@ -829,6 +830,9 @@ function exibirDetalhesVenda(v) {
 
     const deps = v.dependentes && v.dependentes.length > 0 ? v.dependentes.map(d => `<li>${d.nome} (${d.papel})</li>`).join('') : 'Nenhum';
     
+    const valorPlanoFormatado = v.valorPlano ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(v.valorPlano)) : '---';
+    const vencimentoPlanoFormatado = v.vencimentoPlano ? formatDate(v.vencimentoPlano) : '---';
+
     body.innerHTML = `
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div>
@@ -842,6 +846,8 @@ function exibirDetalhesVenda(v) {
                 <h4 style="color: var(--primary); margin-bottom: 10px;">Dados da Venda</h4>
                 <p><strong>Contrato:</strong> ${v.numeroContrato || '---'}</p>
                 <p><strong>Plano:</strong> ${v.tipoPlano}</p>
+                <p><strong>Valor do Plano:</strong> ${valorPlanoFormatado}</p>
+                <p><strong>Vencimento do Plano:</strong> ${vencimentoPlanoFormatado}</p>
                 <p><strong>Vendedor:</strong> ${v.vendedor}</p>
                 <p><strong>Status:</strong> <span class="badge badge-${v.status === 'Aprovado' ? 'success' : 'warning'}">${v.status}</span></p>
             </div>
@@ -866,21 +872,31 @@ function exibirDetalhesVenda(v) {
  */
 async function syncVendaComGoogleCalendar(venda) {
     console.log("Iniciando sincronização com Google Calendar...");
-    const pagamentos = [
-        { valor: venda.pagamento1 || venda.valor1, data: venda.vencimento1, num: 1 },
-        { valor: venda.pagamento2 || venda.valor2, data: venda.vencimento2, num: 2 },
-        { valor: venda.pagamento3 || venda.valor3, data: venda.vencimento3, num: 3 }
-    ];
+    const pagamentos = [];
+
+    // Principal (Vencimento do Plano)
+    if (venda.vencimentoPlano && venda.valorPlano) {
+        pagamentos.push({ valor: venda.valorPlano, data: venda.vencimentoPlano, label: 'Plano' });
+    }
+
+    // Parcelas
+    if (venda.pagamento1 && venda.vencimento1) {
+        pagamentos.push({ valor: venda.pagamento1, data: venda.vencimento1, label: '1' });
+    }
+    if (venda.pagamento2 && venda.vencimento2) {
+        pagamentos.push({ valor: venda.pagamento2, data: venda.vencimento2, label: '2' });
+    }
+    if (venda.pagamento3 && venda.vencimento3) {
+        pagamentos.push({ valor: venda.pagamento3, data: venda.vencimento3, label: '3' });
+    }
 
     for (const p of pagamentos) {
-        if (p.data && p.valor) {
-            try {
-                await createPaymentEvent(venda, p.num, p.data, p.valor);
-                console.log(`✅ Lembrete da parcela ${p.num} criado.`);
-            } catch (calErr) {
-                console.error(`❌ Erro na parcela ${p.num}:`, calErr);
-                throw calErr; // Propaga para o chamador tratar (ex: mostrar alert)
-            }
+        try {
+            await createPaymentEvent(venda, p.label, p.data, p.valor);
+            console.log(`✅ Lembrete de ${p.label} criado.`);
+        } catch (calErr) {
+            console.error(`❌ Erro em ${p.label}:`, calErr);
+            throw calErr; // Propaga para o chamador tratar (ex: mostrar alert)
         }
     }
 }
@@ -970,7 +986,7 @@ function addDependenteRow(nome = '', dataNasc = '', cpf = '', papel = 'Titular')
                 <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
             </button>
         </div>
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px;">
+        <div class="dependent-grid">
             <input type="text" name="dependenteNome[]" value="${nome}" placeholder="Nome do Dependente" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
             <input type="date" name="dependenteNascimento[]" value="${dataNasc}" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
             <input type="text" name="dependenteCpf[]" value="${cpf}" placeholder="CPF" class="cpf-mask" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
