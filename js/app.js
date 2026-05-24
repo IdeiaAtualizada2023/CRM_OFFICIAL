@@ -244,7 +244,7 @@ function setupGlobalEventListeners() {
                 await salvarVenda(vendaData);
                 
                 // --- Integração com Google Calendar (Não bloqueia o salvamento) ---
-                if (vendaData.syncGoogleCalendar === 'on') {
+                if (vendaData.syncGoogleCalendar === 'on' || vendaData.syncGoogleCalendar2 === 'on') {
                     console.log("Iniciando sincronização em segundo plano...");
                     syncVendaComGoogleCalendar(vendaData).catch(err => {
                         console.error("Falha na sincronização automática:", err);
@@ -409,6 +409,18 @@ function setupGlobalEventListeners() {
     if (themeToggle) {
         themeToggle.addEventListener('click', () => {
             document.body.classList.toggle('theme-dark');
+        });
+    }
+
+    // Sincronizar checkboxes do Google Calendar na UI (Espelhamento dinâmico)
+    const syncCb1 = document.getElementById('syncGoogleCalendar');
+    const syncCb2 = document.getElementById('syncGoogleCalendar2');
+    if (syncCb1 && syncCb2) {
+        syncCb1.addEventListener('change', () => {
+            syncCb2.checked = syncCb1.checked;
+        });
+        syncCb2.addEventListener('change', () => {
+            syncCb1.checked = syncCb2.checked;
         });
     }
 
