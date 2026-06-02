@@ -110,8 +110,8 @@
                 <!-- Dashboard View -->
                 <section id="view-dashboard" class="view-section">
                     <div class="view-header">
-                        <h1>Visão Geral</h1>
-                        <p>Acompanhe o desempenho das suas vendas.</p>
+                        <h1>Visão Geral - <span id="current-month-name">Mês Atual</span></h1>
+                        <p>Acompanhe o desempenho das suas vendas no mês corrente.</p>
                     </div>
 
                     <div class="dashboard-cards"
@@ -215,6 +215,82 @@
                             <div
                                 style="padding: 1.5rem; flex: 1; display: flex; align-items: center; justify-content: center;">
                                 <canvas id="livesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Histórico e Acumulado Section -->
+                    <div class="dashboard-history" style="margin-top: 2rem;">
+                        <div class="view-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div>
+                                <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-main); margin: 0;">Histórico de Vendas</h2>
+                                <p style="color: var(--text-muted); font-size: 0.9rem; margin: 4px 0 0 0;">Selecione um período para visualizar as estatísticas históricas.</p>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 6px 12px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                <span class="material-symbols-outlined" style="font-size: 20px; color: #64748b;">calendar_month</span>
+                                <select id="filter-historico-mes" style="border: none; background: transparent; outline: none; font-size: 0.95rem; color: #1e293b; cursor: pointer; font-weight: 500;">
+                                    <option value="todos">Geral (Todo o período)</option>
+                                    <!-- Populated dynamically via JS -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem;">
+                            <div class="card stat-card primary">
+                                <div class="card-icon"><span class="material-symbols-outlined">analytics</span></div>
+                                <div class="card-info">
+                                    <h3>Total de Vendas</h3>
+                                    <p class="stat-value" id="hist-stat-total-sales" style="font-size: 1.4rem;">0</p>
+                                </div>
+                            </div>
+                            <div class="card stat-card success">
+                                <div class="card-icon"><span class="material-symbols-outlined">check_circle</span></div>
+                                <div class="card-info">
+                                    <h3>Concluídas</h3>
+                                    <p class="stat-value" id="hist-stat-completed" style="font-size: 1.4rem;">0</p>
+                                </div>
+                            </div>
+                            <div class="card stat-card warning">
+                                <div class="card-icon"><span class="material-symbols-outlined">pending_actions</span></div>
+                                <div class="card-info">
+                                    <h3>Pendentes</h3>
+                                    <p class="stat-value" id="hist-stat-pending" style="font-size: 1.4rem;">0</p>
+                                </div>
+                            </div>
+                            <div class="card stat-card danger">
+                                <div class="card-icon"><span class="material-symbols-outlined">cancel</span></div>
+                                <div class="card-info">
+                                    <h3>Canceladas</h3>
+                                    <p class="stat-value" id="hist-stat-canceled" style="font-size: 1.4rem;">0</p>
+                                </div>
+                            </div>
+                            <div class="card stat-card info" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; padding: 0.8rem;">
+                                <div class="card-icon" style="background: rgba(255,255,255,0.2);"><span class="material-symbols-outlined" style="color: white;">payments</span></div>
+                                <div class="card-info">
+                                    <h3 style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">Faturamento Total</h3>
+                                    <p class="stat-value" id="hist-stat-total-value" style="color: white; font-size: 1.15rem;">R$ 0,00</p>
+                                </div>
+                            </div>
+                            <div class="card stat-card danger" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 0.8rem;">
+                                <div class="card-icon" style="background: rgba(255,255,255,0.2);"><span class="material-symbols-outlined" style="color: white;">money_off</span></div>
+                                <div class="card-info">
+                                    <h3 style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">Vendas Perdidas</h3>
+                                    <p class="stat-value" id="hist-stat-lost-value" style="color: white; font-size: 1.15rem;">R$ 0,00</p>
+                                </div>
+                            </div>
+                            <div class="card stat-card secondary" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 0.8rem;">
+                                <div class="card-icon" style="background: rgba(255,255,255,0.2);"><span class="material-symbols-outlined" style="color: white;">groups</span></div>
+                                <div class="card-info">
+                                    <h3 style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">Total de Vidas</h3>
+                                    <p class="stat-value" id="hist-stat-total-lives" style="color: white; font-size: 1.4rem;">0</p>
+                                </div>
+                            </div>
+                            <div class="card stat-card secondary" style="background: #ffffff; border: 1px solid #e2e8f0; padding: 0.8rem;">
+                                <div class="card-icon" style="background: #f8fafc;"><span class="material-symbols-outlined" style="color: #6366f1;">trending_up</span></div>
+                                <div class="card-info">
+                                    <h3 style="color: #64748b; font-size: 0.85rem;">Ticket Médio</h3>
+                                    <p class="stat-value" id="hist-stat-avg-ticket" style="color: #1e293b; font-size: 1.15rem;">R$ 0,00</p>
+                                </div>
                             </div>
                         </div>
                     </div>

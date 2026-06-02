@@ -174,22 +174,46 @@ export async function toggleStatusVenda(id) {
 
 let livesChart = null;
 
-export async function atualizarEstatisticas() {
-    const vendas = await carregarVendas();
-    
-    // Contagens
-    const total = vendas.length;
-    const concluidasVendas = vendas.filter(v => v.status === "Aprovado" || v.status === "Pago");
-    const concluidas = concluidasVendas.length;
-    const pendentes = vendas.filter(v => v.status === "Pendente" || !v.status).length;
-    const canceladas = vendas.filter(v => v.status === "Cancelado").length;
+export function extrairAnoMes(dateStr) {
+    if (!dateStr || dateStr === '-') return null;
+    if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+            return {
+                ano: parseInt(parts[2], 10),
+                mes: parseInt(parts[1], 10)
+            };
+        }
+    }
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        return {
+            ano: parseInt(parts[0], 10),
+            mes: parseInt(parts[1], 10)
+        };
+    }
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+        return {
+            ano: d.getFullYear(),
+            mes: d.getMonth() + 1
+        };
+    }
+    return null;
+}
 
-    // Valores
+export function calcularEstatisticasParaVendas(vendasFiltradas) {
+    const total = vendasFiltradas.length;
+    const concluidasVendas = vendasFiltradas.filter(v => v.status === "Aprovado" || v.status === "Pago");
+    const concluidas = concluidasVendas.length;
+    const pendentes = vendasFiltradas.filter(v => v.status === "Pendente" || !v.status).length;
+    const canceladas = vendasFiltradas.filter(v => v.status === "Cancelado").length;
+
     let faturamento = 0;
     let perdido = 0;
     let totalVidas = 0;
 
-    vendas.forEach(v => {
+    vendasFiltradas.forEach(v => {
         const valor = parseFloat(v.valorPlano || v.valor || 0);
         const isConcluida = v.status === "Aprovado" || v.status === "Pago";
         
@@ -204,21 +228,120 @@ export async function atualizarEstatisticas() {
 
     const avgTicket = concluidas > 0 ? faturamento / concluidas : 0;
 
-    // Atualizar UI
-    // Atualizar UI
+    return {
+        total,
+        concluidas,
+        pendentes,
+        canceladas,
+        faturamento,
+        perdido,
+        totalVidas,
+        avgTicket
+    };
+}
+
+function renderizarEstatisticasNosCards(stats, prefix = '') {
     const setEl = (id, val) => {
         const el = document.getElementById(id);
-        if(el) el.textContent = val;
+        if (el) el.textContent = val;
     };
 
-    setEl('stat-total-sales', total);
-    setEl('stat-completed', concluidas);
-    setEl('stat-pending', pendentes);
-    setEl('stat-canceled', canceladas);
-    setEl('stat-total-value', formatCurrency(faturamento));
-    setEl('stat-lost-value', formatCurrency(perdido));
-    setEl('stat-avg-ticket', formatCurrency(avgTicket));
-    setEl('stat-total-lives', totalVidas);
+    setEl(prefix + 'stat-total-sales', stats.total);
+    setEl(prefix + 'stat-completed', stats.concluidas);
+    setEl(prefix + 'stat-pending', stats.pendentes);
+    setEl(prefix + 'stat-canceled', stats.canceladas);
+    setEl(prefix + 'stat-total-value', formatCurrency(stats.faturamento));
+    setEl(prefix + 'stat-lost-value', formatCurrency(stats.perdido));
+    setEl(prefix + 'stat-total-lives', stats.totalVidas);
+    setEl(prefix + 'stat-avg-ticket', formatCurrency(stats.avgTicket));
+}
+
+export function atualizarCardsHistorico(vendas) {
+    const selectHistorico = document.getElementById('filter-historico-mes');
+    if (!selectHistorico) return;
+
+    const filtro = selectHistorico.value;
+    let vendasFiltradas = vendas;
+
+    if (filtro && filtro !== 'todos') {
+        const [anoFiltro, mesFiltro] = filtro.split('-').map(num => parseInt(num, 10));
+        vendasFiltradas = vendas.filter(v => {
+            const dataInfo = extrairAnoMes(v.dataVenda || v.Data);
+            return dataInfo && dataInfo.ano === anoFiltro && dataInfo.mes === mesFiltro;
+        });
+    }
+
+    const statsHistorico = calcularEstatisticasParaVendas(vendasFiltradas);
+    renderizarEstatisticasNosCards(statsHistorico, 'hist-');
+}
+
+export async function atualizarEstatisticas() {
+    const vendas = await carregarVendas();
+    
+    // 1. Identificar mês/ano atuais
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
+    const mesAtual = hoje.getMonth() + 1; // 1-12
+    const nomesMeses = [
+        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+
+    const elMonthName = document.getElementById('current-month-name');
+    if (elMonthName) {
+        elMonthName.textContent = `${nomesMeses[hoje.getMonth()]} / ${anoAtual}`;
+    }
+
+    // 2. Filtrar vendas do mês atual
+    const vendasMesAtual = vendas.filter(v => {
+        const dataInfo = extrairAnoMes(v.dataVenda || v.Data);
+        return dataInfo && dataInfo.ano === anoAtual && dataInfo.mes === mesAtual;
+    });
+
+    // 3. Atualizar cards superiores (Mês Atual)
+    const statsMesAtual = calcularEstatisticasParaVendas(vendasMesAtual);
+    renderizarEstatisticasNosCards(statsMesAtual, '');
+
+    // 4. Popular dinamicamente o select de histórico
+    const periodos = [];
+    vendas.forEach(v => {
+        const dataInfo = extrairAnoMes(v.dataVenda || v.Data);
+        if (dataInfo) {
+            const chave = `${dataInfo.ano}-${String(dataInfo.mes).padStart(2, '0')}`;
+            if (!periodos.includes(chave)) {
+                periodos.push(chave);
+            }
+        }
+    });
+
+    // Ordenar períodos (mais recentes primeiro)
+    periodos.sort().reverse();
+
+    const selectHistorico = document.getElementById('filter-historico-mes');
+    if (selectHistorico) {
+        const valorSelecionadoOriginal = selectHistorico.value;
+        selectHistorico.innerHTML = '<option value="todos">Geral (Todo o período)</option>';
+        
+        periodos.forEach(p => {
+            const [ano, mesStr] = p.split('-');
+            const mesIdx = parseInt(mesStr, 10) - 1;
+            const nomeMes = nomesMeses[mesIdx];
+            const option = document.createElement('option');
+            option.value = p;
+            option.textContent = `${nomeMes} de ${ano}`;
+            selectHistorico.appendChild(option);
+        });
+
+        // Restaurar valor selecionado
+        if (valorSelecionadoOriginal && [...selectHistorico.options].some(opt => opt.value === valorSelecionadoOriginal)) {
+            selectHistorico.value = valorSelecionadoOriginal;
+        } else {
+            selectHistorico.value = 'todos';
+        }
+    }
+
+    // 5. Atualizar cards inferiores (Histórico/Acumulado)
+    atualizarCardsHistorico(vendas);
 
     renderTables(vendas);
     renderLivesChart(vendas);

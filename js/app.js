@@ -1,5 +1,5 @@
 import { listarUsuarios, getCurrentUser, login, loginComGoogle, cadastrarUsuario, buscarUsuarioPorId, atualizarUsuario, excluirUsuario, setCurrentUser, initAuth } from './services/authService.js';
-import { carregarVendas, salvarVenda, getVenda, excluirVenda, toggleStatusVenda, atualizarEstatisticas } from './services/dataService.js';
+import { carregarVendas, salvarVenda, getVenda, excluirVenda, toggleStatusVenda, atualizarEstatisticas, atualizarCardsHistorico } from './services/dataService.js';
 import { createPaymentEvent, initGoogleApi } from './services/googleCalendarService.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -415,6 +415,15 @@ function setupGlobalEventListeners() {
     if (themeToggle) {
         themeToggle.addEventListener('click', () => {
             document.body.classList.toggle('theme-dark');
+        });
+    }
+
+    // Filtro de Histórico Mensal
+    const selectHistorico = document.getElementById('filter-historico-mes');
+    if (selectHistorico) {
+        selectHistorico.addEventListener('change', async () => {
+            const vendas = await carregarVendas();
+            atualizarCardsHistorico(vendas);
         });
     }
 
