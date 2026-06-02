@@ -268,6 +268,9 @@ function setupGlobalEventListeners() {
             } catch (error) {
                 console.error("Erro ao salvar:", error);
                 alert("Erro ao salvar venda: " + (error.message || "Erro desconhecido"));
+            } finally {
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = originalBtnText;
             }
         });
     }
@@ -320,16 +323,19 @@ function setupGlobalEventListeners() {
             } else if (btn.classList.contains('action-status')) {
                 btn.style.opacity = '0.5';
                 btn.disabled = true;
-                const sucesso = await toggleStatusVenda(id);
-                if (sucesso) {
-                    // Removi o alert de sucesso para ficar mais profissional, 
-                    // mas mantive o recarregamento dos dados.
-                    await atualizarEstatisticas();
-                } else {
-                    // O alerta de erro agora vem de dentro do dataService.js se for permissão
+                try {
+                    const sucesso = await toggleStatusVenda(id);
+                    if (sucesso) {
+                        // Removi o alert de sucesso para ficar mais profissional, 
+                        // mas mantive o recarregamento dos dados.
+                        await atualizarEstatisticas();
+                    } else {
+                        // O alerta de erro agora vem de dentro do dataService.js se for permissão
+                    }
+                } finally {
+                    btn.style.opacity = '1';
+                    btn.disabled = false;
                 }
-                btn.style.opacity = '1';
-                btn.disabled = false;
             } else if (btn.classList.contains('action-view')) {
                 const venda = await getVenda(id);
                 if (venda) exibirDetalhesVenda(venda);
