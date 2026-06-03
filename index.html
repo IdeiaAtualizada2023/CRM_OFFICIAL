@@ -221,21 +221,28 @@
 
                     <!-- Histórico e Acumulado Section -->
                     <div class="dashboard-history" style="margin-top: 2rem;">
-                        <div class="view-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+                        <div class="view-header"
+                            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
                             <div>
-                                <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-main); margin: 0;">Histórico de Vendas</h2>
-                                <p style="color: var(--text-muted); font-size: 0.9rem; margin: 4px 0 0 0;">Selecione um período para visualizar as estatísticas históricas.</p>
+                                <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-main); margin: 0;">
+                                    Histórico de Vendas</h2>
+                                <p style="color: var(--text-muted); font-size: 0.9rem; margin: 4px 0 0 0;">Selecione um
+                                    período para visualizar as estatísticas históricas.</p>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 6px 12px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                                <span class="material-symbols-outlined" style="font-size: 20px; color: #64748b;">calendar_month</span>
-                                <select id="filter-historico-mes" style="border: none; background: transparent; outline: none; font-size: 0.95rem; color: #1e293b; cursor: pointer; font-weight: 500;">
+                            <div
+                                style="display: flex; align-items: center; gap: 8px; background: white; padding: 6px 12px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                <span class="material-symbols-outlined"
+                                    style="font-size: 20px; color: #64748b;">calendar_month</span>
+                                <select id="filter-historico-mes"
+                                    style="border: none; background: transparent; outline: none; font-size: 0.95rem; color: #1e293b; cursor: pointer; font-weight: 500;">
                                     <option value="todos">Geral (Todo o período)</option>
                                     <!-- Populated dynamically via JS -->
                                 </select>
                             </div>
                         </div>
 
-                        <div class="dashboard-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem;">
+                        <div class="dashboard-cards"
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem;">
                             <div class="card stat-card primary">
                                 <div class="card-icon"><span class="material-symbols-outlined">analytics</span></div>
                                 <div class="card-info">
@@ -251,7 +258,8 @@
                                 </div>
                             </div>
                             <div class="card stat-card warning">
-                                <div class="card-icon"><span class="material-symbols-outlined">pending_actions</span></div>
+                                <div class="card-icon"><span class="material-symbols-outlined">pending_actions</span>
+                                </div>
                                 <div class="card-info">
                                     <h3>Pendentes</h3>
                                     <p class="stat-value" id="hist-stat-pending" style="font-size: 1.4rem;">0</p>
@@ -264,32 +272,45 @@
                                     <p class="stat-value" id="hist-stat-canceled" style="font-size: 1.4rem;">0</p>
                                 </div>
                             </div>
-                            <div class="card stat-card info" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; padding: 0.8rem;">
-                                <div class="card-icon" style="background: rgba(255,255,255,0.2);"><span class="material-symbols-outlined" style="color: white;">payments</span></div>
+                            <div class="card stat-card info"
+                                style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; padding: 0.8rem;">
+                                <div class="card-icon" style="background: rgba(255,255,255,0.2);"><span
+                                        class="material-symbols-outlined" style="color: white;">payments</span></div>
                                 <div class="card-info">
                                     <h3 style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">Faturamento Total</h3>
-                                    <p class="stat-value" id="hist-stat-total-value" style="color: white; font-size: 1.15rem;">R$ 0,00</p>
+                                    <p class="stat-value" id="hist-stat-total-value"
+                                        style="color: white; font-size: 1.15rem;">R$ 0,00</p>
                                 </div>
                             </div>
-                            <div class="card stat-card danger" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 0.8rem;">
-                                <div class="card-icon" style="background: rgba(255,255,255,0.2);"><span class="material-symbols-outlined" style="color: white;">money_off</span></div>
+                            <div class="card stat-card danger"
+                                style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 0.8rem;">
+                                <div class="card-icon" style="background: rgba(255,255,255,0.2);"><span
+                                        class="material-symbols-outlined" style="color: white;">money_off</span></div>
                                 <div class="card-info">
                                     <h3 style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">Vendas Perdidas</h3>
-                                    <p class="stat-value" id="hist-stat-lost-value" style="color: white; font-size: 1.15rem;">R$ 0,00</p>
+                                    <p class="stat-value" id="hist-stat-lost-value"
+                                        style="color: white; font-size: 1.15rem;">R$ 0,00</p>
                                 </div>
                             </div>
-                            <div class="card stat-card secondary" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 0.8rem;">
-                                <div class="card-icon" style="background: rgba(255,255,255,0.2);"><span class="material-symbols-outlined" style="color: white;">groups</span></div>
+                            <div class="card stat-card secondary"
+                                style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 0.8rem;">
+                                <div class="card-icon" style="background: rgba(255,255,255,0.2);"><span
+                                        class="material-symbols-outlined" style="color: white;">groups</span></div>
                                 <div class="card-info">
                                     <h3 style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">Total de Vidas</h3>
-                                    <p class="stat-value" id="hist-stat-total-lives" style="color: white; font-size: 1.4rem;">0</p>
+                                    <p class="stat-value" id="hist-stat-total-lives"
+                                        style="color: white; font-size: 1.4rem;">0</p>
                                 </div>
                             </div>
-                            <div class="card stat-card secondary" style="background: #ffffff; border: 1px solid #e2e8f0; padding: 0.8rem;">
-                                <div class="card-icon" style="background: #f8fafc;"><span class="material-symbols-outlined" style="color: #6366f1;">trending_up</span></div>
+                            <div class="card stat-card secondary"
+                                style="background: #ffffff; border: 1px solid #e2e8f0; padding: 0.8rem;">
+                                <div class="card-icon" style="background: #f8fafc;"><span
+                                        class="material-symbols-outlined" style="color: #6366f1;">trending_up</span>
+                                </div>
                                 <div class="card-info">
                                     <h3 style="color: #64748b; font-size: 0.85rem;">Ticket Médio</h3>
-                                    <p class="stat-value" id="hist-stat-avg-ticket" style="color: #1e293b; font-size: 1.15rem;">R$ 0,00</p>
+                                    <p class="stat-value" id="hist-stat-avg-ticket"
+                                        style="color: #1e293b; font-size: 1.15rem;">R$ 0,00</p>
                                 </div>
                             </div>
                         </div>
@@ -503,6 +524,12 @@
                                                 - Apartamento / Com Coparticipação Total</option>
                                         </optgroup>
                                         <optgroup label="Affix">
+                                            <option value="Affix - Nosso Plano - Enfermaria / Com coparticipação">Affix
+                                                - Nosso Plano -
+                                                Enfermaria / Com coparticipação</option>
+                                            <option value="Affix - Nosso Plano - Enfermaria / Com coparticipação">Affix
+                                                - Nosso Plano -
+                                                Enfermaria / Com coparticipação Parcial</option>
                                             <option value="Affix - Smart 200 SP Enfermaria / Com Coparticipação Total">
                                                 Affix - Smart 200 SP Enfermaria / Com Coparticipação Total</option>
                                             <option
@@ -564,6 +591,12 @@
                                                 Affix - Nosso Médico Enfermaria / Com Coparticipação Parcial</option>
                                         </optgroup>
                                         <optgroup label="Alter">
+                                            <option value="Alter - Nosso Plano - Enfermaria / Com coparticipação">Alter
+                                                - Nosso Plano -
+                                                Enfermaria / Com coparticipação</option>
+                                            <option value="Alter - Nosso Plano - Enfermaria / Com coparticipação">Alter
+                                                - Nosso Plano -
+                                                Enfermaria / Com coparticipação Parcial</option>
                                             <option
                                                 value="Alter Aberta - Smart 150 ABC Enfermaria / Com Coparticipação Total">
                                                 Alter Aberta - Smart 150 ABC Enfermaria / Com Coparticipação Total
@@ -646,9 +679,12 @@
                                     <input type="date" name="vencimentoPlano" required>
                                 </div>
                                 <div class="form-group full-width" style="margin-top: -5px; margin-bottom: 5px;">
-                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500; color: var(--primary); font-size: 0.9rem;">
-                                        <input type="checkbox" name="syncGoogleCalendar" id="syncGoogleCalendar" style="width: 18px; height: 18px; margin: 0;">
-                                        <span class="material-symbols-outlined" style="font-size: 18px; color: #4285F4;">calendar_today</span>
+                                    <label
+                                        style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500; color: var(--primary); font-size: 0.9rem;">
+                                        <input type="checkbox" name="syncGoogleCalendar" id="syncGoogleCalendar"
+                                            style="width: 18px; height: 18px; margin: 0;">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 18px; color: #4285F4;">calendar_today</span>
                                         Sincronizar com Google Calendar (Lembrete 1 dia antes)
                                     </label>
                                 </div>
