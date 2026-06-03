@@ -418,6 +418,36 @@ function setupGlobalEventListeners() {
         });
     }
 
+    // Sidebar Collapse
+    const sidebarCollapseBtn = document.getElementById('sidebar-collapse-btn');
+    const sidebarEl = document.querySelector('.sidebar');
+    const collapseIcon = document.getElementById('collapse-icon');
+
+    if (sidebarCollapseBtn && sidebarEl && collapseIcon) {
+        // Restaurar estado anterior do localStorage
+        const isCollapsed = localStorage.getItem('crm_sidebar_collapsed') === 'true';
+        if (isCollapsed) {
+            sidebarEl.classList.add('collapsed');
+            collapseIcon.textContent = 'left_panel_open';
+            sidebarCollapseBtn.setAttribute('title', 'Expandir Menu');
+        }
+
+        sidebarCollapseBtn.addEventListener('click', () => {
+            const willCollapse = !sidebarEl.classList.contains('collapsed');
+            if (willCollapse) {
+                sidebarEl.classList.add('collapsed');
+                collapseIcon.textContent = 'left_panel_open';
+                sidebarCollapseBtn.setAttribute('title', 'Expandir Menu');
+                localStorage.setItem('crm_sidebar_collapsed', 'true');
+            } else {
+                sidebarEl.classList.remove('collapsed');
+                collapseIcon.textContent = 'left_panel_close';
+                sidebarCollapseBtn.setAttribute('title', 'Recolher Menu');
+                localStorage.setItem('crm_sidebar_collapsed', 'false');
+            }
+        });
+    }
+
     // Filtro de Histórico Mensal
     const selectHistorico = document.getElementById('filter-historico-mes');
     if (selectHistorico) {

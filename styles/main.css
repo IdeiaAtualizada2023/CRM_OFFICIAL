@@ -121,6 +121,52 @@ body.loading-state {
     border-top: 1px solid rgba(255,255,255,0.05);
 }
 
+/* Sidebar Collapsed State Styles */
+.sidebar .nav-text {
+    white-space: nowrap;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.2s ease, width 0.2s ease, visibility 0.2s ease;
+}
+
+.sidebar.collapsed {
+    width: 80px;
+}
+
+.sidebar.collapsed .sidebar-header {
+    padding: 0 10px;
+    justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-header img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    object-position: right;
+    transition: all 0.3s ease;
+}
+
+.sidebar.collapsed .sidebar-nav,
+.sidebar.collapsed .sidebar-footer {
+    padding: 24px 8px;
+}
+
+.sidebar.collapsed .nav-item {
+    justify-content: center;
+    padding: 12px 0;
+    gap: 0;
+}
+
+.sidebar.collapsed .nav-text {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
 /* Main Content */
 .main-content {
     flex: 1;
@@ -657,6 +703,50 @@ body.theme-dark .btn-google:hover {
 
     .dashboard-cards {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    #sidebar-collapse-btn {
+        display: none !important;
+    }
+
+    .sidebar.collapsed {
+        width: 260px !important;
+    }
+
+    .sidebar.collapsed .nav-text {
+        opacity: 1 !important;
+        visibility: visible !important;
+        width: auto !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .sidebar.collapsed .sidebar-header {
+        padding: 0 24px !important;
+        justify-content: flex-start !important;
+    }
+
+    .sidebar.collapsed .sidebar-header img {
+        width: auto !important;
+        height: auto !important;
+        max-width: 100% !important;
+        max-height: 60px !important;
+        object-fit: contain !important;
+        object-position: center !important;
+    }
+
+    .sidebar.collapsed .nav-item {
+        justify-content: flex-start !important;
+        padding: 12px 16px !important;
+        gap: 12px !important;
+    }
+
+    .sidebar.collapsed .sidebar-nav {
+        padding: 24px 12px !important;
+    }
+
+    .sidebar.collapsed .sidebar-footer {
+        padding: 24px 12px !important;
     }
 }
 

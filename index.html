@@ -39,29 +39,33 @@
             </div>
 
             <nav class="sidebar-nav">
-                <button class="nav-item active" data-target="dashboard">
+                <button class="nav-item active" data-target="dashboard" title="Dashboard">
                     <span class="material-symbols-outlined">dashboard</span>
-                    Dashboard
+                    <span class="nav-text">Dashboard</span>
                 </button>
-                <button class="nav-item" data-target="sales">
+                <button class="nav-item" data-target="sales" title="Lista de Vendas">
                     <span class="material-symbols-outlined">receipt_long</span>
-                    Lista de Vendas
+                    <span class="nav-text">Lista de Vendas</span>
                 </button>
-                <button class="nav-item" data-target="new-sale">
+                <button class="nav-item" data-target="new-sale" title="Nova Venda">
                     <span class="material-symbols-outlined">add_circle</span>
-                    Nova Venda
+                    <span class="nav-text">Nova Venda</span>
                 </button>
                 <button class="nav-item" data-target="users" id="nav-users"
                     title="Gerenciar Usuários e Administradores">
                     <span class="material-symbols-outlined">group</span>
-                    Usuários
+                    <span class="nav-text">Usuários</span>
                 </button>
             </nav>
 
-            <div class="sidebar-footer">
+            <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 8px;">
                 <button class="nav-item theme-toggle" id="theme-toggle" title="Alternar entre Modo Claro e Escuro">
                     <span class="material-symbols-outlined">dark_mode</span>
-                    Modo Escuro
+                    <span class="nav-text">Modo Escuro</span>
+                </button>
+                <button class="nav-item collapse-toggle" id="sidebar-collapse-btn" title="Recolher Menu">
+                    <span class="material-symbols-outlined" id="collapse-icon">left_panel_close</span>
+                    <span class="nav-text">Recolher</span>
                 </button>
             </div>
         </aside>
