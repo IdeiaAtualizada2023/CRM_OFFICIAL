@@ -223,6 +223,38 @@
                         </div>
                     </div>
 
+                    <!-- Desempenho por Fontes de Vendas -->
+                    <div class="dashboard-recent" style="margin-top: 2rem;">
+                        <div class="card" style="min-height: 400px; display: flex; flex-direction: column;">
+                            <div class="card-header" style="margin-bottom: 1rem;">
+                                <h2 style="font-size: 1.15rem; font-weight: 600;">Desempenho por Fonte de Venda</h2>
+                            </div>
+                            <div style="padding: 1rem; flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 280px;">
+                                <canvas id="sourcesChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card" style="min-height: 400px; display: flex; flex-direction: column;">
+                            <div class="card-header" style="margin-bottom: 1rem;">
+                                <h2 style="font-size: 1.15rem; font-weight: 600;">Ranking de Fontes</h2>
+                            </div>
+                            <div class="table-responsive" style="flex: 1; overflow-y: auto; max-height: 310px; padding-right: 5px;">
+                                <table class="data-table" id="sources-ranking-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fonte</th>
+                                            <th style="text-align: center;">Vendas</th>
+                                            <th style="text-align: right;">Total (R$)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Dinâmico via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Histórico e Acumulado Section -->
                     <div class="dashboard-history" style="margin-top: 2rem;">
                         <div class="view-header"
@@ -471,6 +503,26 @@
                                         <option value="Pendente">Pendente</option>
                                         <option value="Aprovado">Aprovado</option>
                                         <option value="Cancelado">Cancelado</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Fonte da Venda</label>
+                                    <select name="fonteVenda" required>
+                                        <option value="">Selecione a fonte...</option>
+                                        <option value="GOOGLE PARTICULAR">GOOGLE PARTICULAR</option>
+                                        <option value="GOOGLE ESTRELAS/CE">GOOGLE ESTRELAS/CE</option>
+                                        <option value="GOOGLE ESTRELAS/SP">GOOGLE ESTRELAS/SP</option>
+                                        <option value="META ADS / FACE / INSTAGRAM">META ADS / FACE / INSTAGRAM</option>
+                                        <option value="PLANTÃO ADM">PLANTÃO ADM</option>
+                                        <option value="PLANTÃO MATRIZ">PLANTÃO MATRIZ</option>
+                                        <option value="PLANTÃO LEOPOLDO">PLANTÃO LEOPOLDO</option>
+                                        <option value="TELEMARKETING">TELEMARKETING</option>
+                                        <option value="INDICAÇÃO">INDICAÇÃO</option>
+                                        <option value="LEADS - LIDERA">LEADS - LIDERA</option>
+                                        <option value="LEADS - ESTRELAS">LEADS - ESTRELAS</option>
+                                        <option value="LISTAGEM - ESTRELAS">LISTAGEM - ESTRELAS</option>
+                                        <option value="LISTAGEM - PRÓPRIA">LISTAGEM - PRÓPRIA</option>
+                                        <option value="DISPAROS / WHATSAPP">DISPAROS / WHATSAPP</option>
                                     </select>
                                 </div>
                                 <div class="form-group full-width">

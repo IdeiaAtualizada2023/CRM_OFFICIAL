@@ -173,6 +173,7 @@ export async function toggleStatusVenda(id) {
 }
 
 let livesChart = null;
+let sourcesChart = null;
 
 export function extrairAnoMes(dateStr) {
     if (!dateStr || dateStr === '-') return null;
@@ -345,6 +346,7 @@ export async function atualizarEstatisticas() {
 
     renderTables(vendas);
     renderLivesChart(vendas);
+    renderSourcesStats(vendas);
 }
 
 function renderLivesChart(vendas) {
@@ -489,4 +491,113 @@ function maskPhone(phone) {
     if (!phone || phone === '-') return phone;
     const clean = phone.replace(/\D/g, '');
     return clean.length >= 10 ? `(***) *****-${clean.slice(-4)}` : phone;
+}
+
+function renderSourcesStats(vendas) {
+    const ctx = document.getElementById('sourcesChart');
+    const tbody = document.querySelector('#sources-ranking-table tbody');
+    if (!ctx && !tbody) return;
+
+    const statsBySource = {};
+    const vendasValidas = vendas.filter(v => v.status === "Aprovado" || v.status === "Pago");
+
+    vendasValidas.forEach(v => {
+        const fonte = v.fonteVenda || 'Não Informada';
+        const valor = parseFloat(v.valorPlano || v.valor || 0);
+        
+        if (!statsBySource[fonte]) {
+            statsBySource[fonte] = { count: 0, valorTotal: 0 };
+        }
+        statsBySource[fonte].count += 1;
+        statsBySource[fonte].valorTotal += valor;
+    });
+
+    const sortedSources = Object.keys(statsBySource).map(fonte => ({
+        fonte,
+        count: statsBySource[fonte].count,
+        valorTotal: statsBySource[fonte].valorTotal
+    })).sort((a, b) => b.count - a.count || b.valorTotal - a.valorTotal);
+
+    const colors = [
+        '#4361ee', '#3f37c9', '#4cc9f0', '#4895ef', 
+        '#560bad', '#7209b7', '#b5179e', '#f72585', 
+        '#2ecc71', '#27ae60', '#f39c12', '#e67e22', 
+        '#e74c3c', '#1abc9c'
+    ];
+
+    if (tbody) {
+        tbody.innerHTML = '';
+        if (sortedSources.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 40px; color: #94a3b8;">Nenhuma venda concluída encontrada.</td></tr>';
+        } else {
+            sortedSources.forEach((s, idx) => {
+                const bulletColor = colors[idx % colors.length];
+                const tr = document.createElement('tr');
+                
+                // Usando display: flex para alinhar o bullet com o texto
+                tr.innerHTML = `
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${bulletColor}; flex-shrink: 0;"></span>
+                            <span>${s.fonte}</span>
+                        </div>
+                    </td>
+                    <td style="text-align: center; font-weight: 600; color: var(--primary);">${s.count}</td>
+                    <td style="text-align: right; font-weight: 500; color: #059669;">${formatCurrency(s.valorTotal)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    if (ctx) {
+        if (sourcesChart) sourcesChart.destroy();
+        
+        if (sortedSources.length === 0) {
+            const chartCtx = ctx.getContext('2d');
+            chartCtx.clearRect(0, 0, ctx.width, ctx.height);
+            chartCtx.font = "14px 'Outfit', sans-serif";
+            chartCtx.fillStyle = "#94a3b8";
+            chartCtx.textAlign = "center";
+            chartCtx.fillText("Sem dados de vendas para exibir", ctx.width / 2, ctx.height / 2);
+            return;
+        }
+
+        const labels = sortedSources.map(s => s.fonte);
+        const data = sortedSources.map(s => s.count);
+        
+        sourcesChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderWidth: 2,
+                    borderColor: 'var(--bg-surface)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const val = context.raw || 0;
+                                const total = context.dataset.data.reduce((acc, curr) => acc + curr, 0);
+                                const percentage = ((val / total) * 100).toFixed(1);
+                                return ` ${label}: ${val} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
 }

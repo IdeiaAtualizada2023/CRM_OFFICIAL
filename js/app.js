@@ -834,6 +834,7 @@ function preencherFormVenda(v) {
     setVal('valorPago', formatMoney(v.valorPago));
     setVal('tipoPagamento', v.tipoPagamento);
     setVal('status', v.status);
+    setVal('fonteVenda', v.fonteVenda);
     setVal('vencimento1', v.vencimento1);
     setVal('pagamento1', formatMoney(v.pagamento1));
     setVal('vencimento2', v.vencimento2);
@@ -906,6 +907,7 @@ function exibirDetalhesVenda(v) {
                 <p><strong>Valor do Plano:</strong> ${valorPlanoFormatado}</p>
                 <p><strong>Vencimento do Plano:</strong> ${vencimentoPlanoFormatado}</p>
                 <p><strong>Vendedor:</strong> ${v.vendedor}</p>
+                <p><strong>Fonte da Venda:</strong> ${v.fonteVenda || '---'}</p>
                 <p><strong>Status:</strong> <span class="badge badge-${v.status === 'Aprovado' ? 'success' : 'warning'}">${v.status}</span></p>
             </div>
         </div>
