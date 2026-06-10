@@ -226,6 +226,13 @@ function setupGlobalEventListeners() {
             });
             vendaData.dependentes = dependentes;
 
+            // Limpar chaves dinâmicas dos dependentes para evitar erro no Firestore (updateDoc)
+            Object.keys(vendaData).forEach(key => {
+                if (key.includes('[') || key.includes(']') || key.startsWith('depPapel_')) {
+                    delete vendaData[key];
+                }
+            });
+
             // Feedback de loading
             const btnSalvar = saleForm.querySelector('button[type="submit"]');
             const originalBtnText = btnSalvar.innerHTML;
