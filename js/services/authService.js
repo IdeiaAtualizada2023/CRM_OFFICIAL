@@ -74,50 +74,125 @@ export async function login(email, password) {
         // 1. Tenta autenticar no Firebase Auth nativo
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
+        const uid = firebaseUser.uid;
 
-        // 2. Busca dados complementares (role, cpf, etc) no Firestore
-        const userData = await buscarUsuarioPorEmail(email);
-        
-        if (userData) {
-            localStorage.setItem(AUTH_KEY, JSON.stringify(userData));
-            return { success: true, user: userData };
-        } else {
-            // Caso raro: tem no Auth mas não no Firestore
-            const newUser = { 
-                name: firebaseUser.displayName || email.split('@')[0], 
-                email: email, 
-                role: 'Vendedor',
-                cod: '---'
-            };
-            const created = await cadastrarUsuario(newUser);
-            localStorage.setItem(AUTH_KEY, JSON.stringify(created));
-            return { success: true, user: created };
+        console.log("Autenticado no Firebase Auth com UID:", uid);
+
+        // 2. Busca dados complementares (role, cpf, etc) no Firestore usando o UID
+        let userData = null;
+        try {
+            const docSnap = await getDoc(doc(db, COLLECTION_USERS, uid));
+            if (docSnap.exists()) {
+                userData = { id: docSnap.id, ...docSnap.data() };
+            }
+        } catch (err) {
+            console.warn("Erro ao buscar usuário por UID no Firestore:", err);
         }
+
+        // 3. Se não encontrar pelo UID, tenta buscar e migrar o documento legado
+        if (!userData) {
+            console.log("Usuário não encontrado por UID no Firestore. Tentando migrar documento legado...");
+            const chavesPossiveis = [
+                email.toLowerCase(),
+                email,
+                email.toLowerCase() === 'admin@amels.com' ? 'admin-001' : null
+            ].filter(Boolean);
+
+            let legacyData = null;
+            let legacyId = null;
+
+            for (const key of chavesPossiveis) {
+                try {
+                    const legacySnap = await getDoc(doc(db, COLLECTION_USERS, key));
+                    if (legacySnap.exists()) {
+                        legacyData = legacySnap.data();
+                        legacyId = legacySnap.id;
+                        break;
+                    }
+                } catch (err) {
+                    console.warn(`Erro ao tentar ler documento legado com chave ${key}:`, err);
+                }
+            }
+
+            if (legacyData) {
+                console.log(`Usuário legado encontrado (ID: ${legacyId}). Migrando para o UID: ${uid}...`);
+                try {
+                    // Salva sob o novo UID
+                    await setDoc(doc(db, COLLECTION_USERS, uid), legacyData);
+                    console.log("Novo documento de usuário criado sob o UID.");
+                    
+                    // Exclui o legado
+                    await deleteDoc(doc(db, COLLECTION_USERS, legacyId));
+                    console.log("Documento legado excluído.");
+                    
+                    userData = { id: uid, ...legacyData };
+                } catch (migrationErr) {
+                    console.error("Erro na migração do documento do usuário:", migrationErr);
+                    userData = { id: legacyId, ...legacyData };
+                }
+            }
+        }
+
+        // 4. Se ainda assim não encontrar nada no Firestore (usuário recém-criado no Auth)
+        if (!userData) {
+            console.log("Nenhum dado encontrado no Firestore. Criando perfil padrão...");
+            const isDefaultAdmin = email.toLowerCase() === 'admin@amels.com';
+            const newUser = {
+                name: isDefaultAdmin ? 'Administrador Principal' : (firebaseUser.displayName || email.split('@')[0]),
+                email: email,
+                role: isDefaultAdmin ? 'Administrador' : 'Vendedor',
+                cod: isDefaultAdmin ? '000' : '---',
+                cpf: isDefaultAdmin ? '000.000.000-00' : '---',
+                avatar: 'person'
+            };
+            try {
+                await setDoc(doc(db, COLLECTION_USERS, uid), newUser);
+                userData = { id: uid, ...newUser };
+            } catch (createErr) {
+                console.error("Erro ao criar perfil padrão no Firestore:", createErr);
+                throw createErr;
+            }
+        }
+
+        localStorage.setItem(AUTH_KEY, JSON.stringify(userData));
+        return { success: true, user: userData };
+
     } catch (e) {
         console.error("Erro no login:", e);
         
-        // Fallback para o primeiro acesso/migração
+        // Mantém suporte para o fluxo de fallback legado original se o usuário não existia no Firebase Auth
         if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
-            // Tenta verificar se o usuário existe no Firestore com essa senha (legado)
-            const usersRef = collection(db, COLLECTION_USERS);
-            const q = query(usersRef, where("email", "==", email), where("password", "==", password));
-            const querySnapshot = await getDocs(q);
-            
-            if (!querySnapshot.empty) {
-                console.log("Usuário legado detectado. Migrando para Firebase Auth...");
-                const userDoc = querySnapshot.docs[0];
-                const userData = { id: userDoc.id, ...userDoc.data() };
+            try {
+                // Tenta verificar se o usuário existe no Firestore com essa senha (legado)
+                const usersRef = collection(db, COLLECTION_USERS);
+                const q = query(usersRef, where("email", "==", email), where("password", "==", password));
+                const querySnapshot = await getDocs(q);
                 
-                // Tenta criar no Firebase Auth para as próximas vezes
-                try {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    console.log("Migração de Auth concluída com sucesso.");
-                } catch (migrationErr) {
-                    console.error("Erro na migração de Auth:", migrationErr);
-                }
+                if (!querySnapshot.empty) {
+                    console.log("Usuário legado detectado na falha de Auth. Migrando para Firebase Auth...");
+                    const userDoc = querySnapshot.docs[0];
+                    const userData = { id: userDoc.id, ...userDoc.data() };
+                    
+                    // Tenta criar no Firebase Auth para as próximas vezes
+                    try {
+                        const credential = await createUserWithEmailAndPassword(auth, email, password);
+                        const newUid = credential.user.uid;
+                        // Salva sob o novo UID
+                        const dataToSave = { ...userData };
+                        delete dataToSave.id;
+                        await setDoc(doc(db, COLLECTION_USERS, newUid), dataToSave);
+                        await deleteDoc(doc(db, COLLECTION_USERS, userDoc.id));
+                        userData.id = newUid;
+                        console.log("Migração de Auth concluída com sucesso.");
+                    } catch (migrationErr) {
+                        console.error("Erro na migração de Auth:", migrationErr);
+                    }
 
-                localStorage.setItem(AUTH_KEY, JSON.stringify(userData));
-                return { success: true, user: userData };
+                    localStorage.setItem(AUTH_KEY, JSON.stringify(userData));
+                    return { success: true, user: userData };
+                }
+            } catch (fallbackErr) {
+                console.error("Erro no fallback de login legado:", fallbackErr);
             }
         }
 
@@ -186,11 +261,14 @@ export async function setCurrentUser(userId) {
 
 export async function cadastrarUsuario(userData) {
     try {
+        let uid = userData.id;
+
         // 1. Cria o usuário no Firebase Auth nativo (para segurança)
         if (userData.email && userData.password) {
             try {
-                await createUserWithEmailAndPassword(auth, userData.email, userData.password);
-                console.log("Usuário criado no Firebase Auth.");
+                const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+                uid = userCredential.user.uid;
+                console.log("Usuário criado no Firebase Auth com UID:", uid);
             } catch (authErr) {
                 // Se já existir no Auth, apenas ignoramos o erro e continuamos para o Firestore
                 if (authErr.code !== 'auth/email-already-in-use') {
@@ -206,25 +284,17 @@ export async function cadastrarUsuario(userData) {
         userData.avatar = userData.avatar || 'person';
         if (!userData.password) userData.password = '123456'; // Padrão mínimo 6 chars
 
-        const id = userData.id;
         const dataToSave = { ...userData };
         delete dataToSave.id;
 
-        const usersRef = collection(db, COLLECTION_USERS);
-        
-        // Se já tiver um ID (edição), usa ele. 
-        // Se for NOVO, cria um ID amigável baseado no e-mail ou nome.
-        if (id && id.length > 5) {
-            await setDoc(doc(db, COLLECTION_USERS, id), dataToSave);
-            return { id, ...dataToSave };
-        } else {
-            // CRIANDO ID AMIGÁVEL: Prioriza e-mail, se não tiver, usa o nome formatado
-            const customId = userData.email ? userData.email.toLowerCase() : userData.name.replace(/\s+/g, '-').toLowerCase();
-            
-            console.log("Criando usuário com ID Amigável:", customId);
-            await setDoc(doc(db, COLLECTION_USERS, customId), dataToSave);
-            return { id: customId, ...dataToSave };
+        let finalId = uid;
+        if (!finalId || finalId.length <= 5) {
+            finalId = userData.email ? userData.email.toLowerCase() : userData.name.replace(/\s+/g, '-').toLowerCase();
         }
+
+        console.log("Criando/atualizando usuário com ID:", finalId);
+        await setDoc(doc(db, COLLECTION_USERS, finalId), dataToSave);
+        return { id: finalId, ...dataToSave };
     } catch (e) {
         console.error("Erro ao cadastrar usuário:", e);
         throw e;

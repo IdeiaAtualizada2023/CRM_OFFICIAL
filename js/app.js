@@ -291,10 +291,17 @@ function setupGlobalEventListeners() {
     }
 
     // Modal Visualizar Venda (Fechar)
-    const btnCloseView = document.getElementById('btn-close-visualizar');
-    if (btnCloseView) {
-        btnCloseView.addEventListener('click', () => {
-            document.getElementById('modal-visualizar').classList.remove('active');
+    const btnCloseView = document.getElementById('btn-close-modal');
+    const btnCloseViewFooter = document.getElementById('btn-close-modal-footer');
+    const modalVisualizar = document.getElementById('modal-visualizar');
+    
+    if (modalVisualizar) {
+        [btnCloseView, btnCloseViewFooter].forEach(btn => {
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    modalVisualizar.classList.remove('active');
+                });
+            }
         });
     }
 
@@ -716,17 +723,23 @@ async function renderUsersTable() {
 async function updateSellerSelect() {
     const sel = document.getElementById('vendedor-select');
     const fSel = document.getElementById('filter-vendedor');
-    const users = await listarUsuarios();
-    const sellers = users.filter(u => u.role === 'Vendedor');
-    const options = '<option value="">Selecione...</option>' + sellers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    const user = getCurrentUser();
     
-    if (sel) {
-        sel.innerHTML = options;
+    if (user && user.role === 'Administrador') {
+        const users = await listarUsuarios();
+        const sellers = users.filter(u => u.role === 'Vendedor');
+        const options = '<option value="">Selecione...</option>' + sellers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+        
+        if (sel) {
+            sel.innerHTML = options;
+            const group = document.getElementById('vendedor-selection-group');
+            if (group) group.style.display = 'block';
+        }
+        if (fSel) fSel.innerHTML = '<option value="">Todos</option>' + sellers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    } else {
         const group = document.getElementById('vendedor-selection-group');
-        const user = getCurrentUser();
-        if (group) group.style.display = user.role === 'Vendedor' ? 'none' : 'block';
+        if (group) group.style.display = 'none';
     }
-    if (fSel) fSel.innerHTML = '<option value="">Todos</option>' + sellers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
 }
 
 function setupAdminFilters() {
@@ -755,13 +768,15 @@ async function renderUserSwitcher() {
     const cont = document.getElementById('user-list-container');
     if (!cont) return;
     
-    let users = await listarUsuarios();
     const current = getCurrentUser();
+    let users = [];
     
     // REGRA DE PRIVACIDADE:
-    // Se não for Admin, só mostra o próprio usuário na lista
-    if (current.role !== 'Administrador') {
-        users = users.filter(u => u.id === current.id);
+    // Se não for Admin, só mostra o próprio usuário na lista sem chamar listarUsuarios()
+    if (current && current.role === 'Administrador') {
+        users = await listarUsuarios();
+    } else if (current) {
+        users = [current];
     }
     
     cont.innerHTML = users.map(u => `
@@ -771,13 +786,13 @@ async function renderUserSwitcher() {
                 <div style="font-weight: 600;">${u.name}</div>
                 <div style="font-size: 0.7rem;">${u.role}</div>
             </div>
-            <span class="material-symbols-outlined" style="font-size: 16px;">${current.role === 'Administrador' ? 'visibility' : 'check_circle'}</span>
+            <span class="material-symbols-outlined" style="font-size: 16px;">${current && current.role === 'Administrador' ? 'visibility' : 'check_circle'}</span>
         </button>
     `).join('');
 
     cont.querySelectorAll('.btn-switch-user').forEach(btn => {
         btn.onclick = async () => {
-            if (current.role === 'Administrador') {
+            if (current && current.role === 'Administrador') {
                 const u = await buscarUsuarioPorId(btn.dataset.id);
                 const fSel = document.getElementById('filter-vendedor');
                 if (fSel && u) {
