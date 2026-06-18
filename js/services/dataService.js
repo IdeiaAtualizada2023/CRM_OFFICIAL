@@ -1,5 +1,5 @@
 // Serviço de Dados - Lidará com o Cloud Firestore
-import { db } from './firebaseConfig.js';
+import { db } from './firebaseConfig.js?v=3.2';
 import { 
     collection, 
     addDoc, 
@@ -13,9 +13,10 @@ import {
     getDoc,
     setDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getCurrentUser } from './authService.js';
+import { getCurrentUser } from './authService.js?v=3.2';
 
 const COLLECTION_NAME = 'vendas';
+let cacheVendas = [];
 
 export async function carregarVendas() {
     console.log("Iniciando carga de vendas (Firestore)...");
@@ -278,6 +279,7 @@ export function atualizarCardsHistorico(vendas) {
 
 export async function atualizarEstatisticas() {
     const vendas = await carregarVendas();
+    cacheVendas = vendas;
     
     // 1. Identificar mês/ano atuais
     const hoje = new Date();
@@ -396,6 +398,11 @@ function renderLivesChart(vendas) {
     });
 }
 
+function normalizarTexto(txt) {
+    if (!txt) return '';
+    return String(txt).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 function renderTables(vendas) {
     console.log("Renderizando tabelas profissionais...");
     
@@ -407,12 +414,54 @@ function renderTables(vendas) {
     });
 
     const allSalesTable = document.querySelector('#all-sales-table tbody');
+    
+    // Filtro de busca global
+    const searchInput = document.getElementById('global-search');
+    const queryText = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    
+    let vendasFiltradas = vendasOrdenadas;
+    if (queryText) {
+        const queryNormalized = normalizarTexto(queryText);
+        const queryTerms = queryNormalized.split(/\s+/).filter(t => t.length > 0);
+        
+        if (queryTerms.length > 0) {
+            vendasFiltradas = vendasOrdenadas.filter(v => {
+                const nomeNorm = normalizarTexto(v.nome);
+                const emailNorm = normalizarTexto(v.email);
+                const contratoNorm = normalizarTexto(v.numeroContrato);
+                const vendedorNorm = normalizarTexto(v.vendedor);
+                const cidadeNorm = normalizarTexto(v.cidade);
+                const estadoNorm = normalizarTexto(v.estado);
+                const statusNorm = normalizarTexto(v.status);
+                
+                const cpfClean = v.cpfCnpj ? v.cpfCnpj.replace(/\D/g, '') : '';
+                const cpfNorm = normalizarTexto(v.cpfCnpj);
+                
+                return queryTerms.every(term => {
+                    const termClean = term.replace(/\D/g, '');
+                    if (termClean.length > 0) {
+                        if (cpfClean.includes(termClean)) return true;
+                        if (contratoNorm.includes(termClean)) return true;
+                    }
+                    return nomeNorm.includes(term) ||
+                           emailNorm.includes(term) ||
+                           vendedorNorm.includes(term) ||
+                           cidadeNorm.includes(term) ||
+                           estadoNorm.includes(term) ||
+                           statusNorm.includes(term) ||
+                           contratoNorm.includes(term) ||
+                           cpfNorm.includes(term);
+                });
+            });
+        }
+    }
+
     if (allSalesTable) {
         allSalesTable.innerHTML = '';
-        if (!vendasOrdenadas || vendasOrdenadas.length === 0) {
+        if (!vendasFiltradas || vendasFiltradas.length === 0) {
             allSalesTable.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: #94a3b8;">Nenhuma venda encontrada.</td></tr>';
         } else {
-            vendasOrdenadas.forEach(v => {
+            vendasFiltradas.forEach(v => {
                 const tr = document.createElement('tr');
                 const status = v.status || 'Pendente';
                 const statusClass = status.toLowerCase() === 'aprovado' ? 'success' : (status.toLowerCase() === 'cancelado' ? 'danger' : 'warning');
@@ -449,7 +498,7 @@ function renderTables(vendas) {
     const recentSalesTable = document.querySelector('#recent-sales-table tbody');
     if (recentSalesTable) {
         recentSalesTable.innerHTML = '';
-        vendasOrdenadas.slice(0, 5).forEach(v => {
+        vendasFiltradas.slice(0, 5).forEach(v => {
             const tr = document.createElement('tr');
             const status = v.status || 'Pendente';
             const statusClass = status.toLowerCase() === 'aprovado' ? 'success' : (status.toLowerCase() === 'cancelado' ? 'danger' : 'warning');
@@ -600,4 +649,8 @@ function renderSourcesStats(vendas) {
             }
         });
     }
+}
+
+export function aplicarBuscaGlobal() {
+    renderTables(cacheVendas);
 }

@@ -1,6 +1,6 @@
-import { listarUsuarios, getCurrentUser, login, loginComGoogle, cadastrarUsuario, buscarUsuarioPorId, atualizarUsuario, excluirUsuario, setCurrentUser, initAuth } from './services/authService.js';
-import { carregarVendas, salvarVenda, getVenda, excluirVenda, toggleStatusVenda, atualizarEstatisticas, atualizarCardsHistorico } from './services/dataService.js';
-import { createPaymentEvent, initGoogleApi } from './services/googleCalendarService.js';
+import { listarUsuarios, getCurrentUser, login, loginComGoogle, cadastrarUsuario, buscarUsuarioPorId, atualizarUsuario, excluirUsuario, setCurrentUser, initAuth } from './services/authService.js?v=3.2';
+import { carregarVendas, salvarVenda, getVenda, excluirVenda, toggleStatusVenda, atualizarEstatisticas, atualizarCardsHistorico, aplicarBuscaGlobal } from './services/dataService.js?v=3.2';
+import { createPaymentEvent, initGoogleApi } from './services/googleCalendarService.js?v=3.2';
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("Sistema CRM Amels - Inicializando...");
@@ -89,6 +89,19 @@ function resetNewSaleForm() {
 }
 
 function setupGlobalEventListeners() {
+    // Busca Global
+    const globalSearch = document.getElementById('global-search');
+    if (globalSearch) {
+        globalSearch.addEventListener('input', () => {
+            const viewUsers = document.getElementById('view-users');
+            if (viewUsers && viewUsers.classList.contains('active')) {
+                renderUsersTable();
+            } else {
+                aplicarBuscaGlobal();
+            }
+        });
+    }
+
     // Navegação Sidebar
     const navItems = document.querySelectorAll('.nav-item[data-target]');
     const views = document.querySelectorAll('.view-section');
@@ -117,6 +130,14 @@ function setupGlobalEventListeners() {
             
             const targetView = document.getElementById(`view-${target}`);
             if(targetView) targetView.classList.add('active');
+
+            // Limpa a busca global ao trocar de aba e reseta visualizações das tabelas
+            const gSearch = document.getElementById('global-search');
+            if (gSearch) {
+                gSearch.value = '';
+                aplicarBuscaGlobal();
+                renderUsersTable();
+            }
         });
     });
 
@@ -650,10 +671,49 @@ function setupLoginHandler() {
     }
 }
 
+function normalizarTexto(txt) {
+    if (!txt) return '';
+    return String(txt).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 async function renderUsersTable() {
     const tbody = document.querySelector('#users-table tbody');
     if (!tbody) return;
-    const users = await listarUsuarios();
+    
+    // Obter busca global se houver
+    const searchInput = document.getElementById('global-search');
+    const queryText = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    
+    let users = await listarUsuarios();
+    
+    if (queryText) {
+        const queryNormalized = normalizarTexto(queryText);
+        const queryTerms = queryNormalized.split(/\s+/).filter(t => t.length > 0);
+        
+        if (queryTerms.length > 0) {
+            users = users.filter(u => {
+                const nameNorm = normalizarTexto(u.name);
+                const emailNorm = normalizarTexto(u.email);
+                const cpfNorm = normalizarTexto(u.cpf);
+                const codNorm = normalizarTexto(u.cod);
+                const roleNorm = normalizarTexto(u.role);
+                
+                const cpfClean = u.cpf ? u.cpf.replace(/\D/g, '') : '';
+                
+                return queryTerms.every(term => {
+                    const termClean = term.replace(/\D/g, '');
+                    if (termClean.length > 0 && cpfClean.includes(termClean)) return true;
+                    
+                    return nameNorm.includes(term) ||
+                           emailNorm.includes(term) ||
+                           cpfNorm.includes(term) ||
+                           codNorm.includes(term) ||
+                           roleNorm.includes(term);
+                });
+            });
+        }
+    }
+    
     tbody.innerHTML = users.map(u => `
         <tr>
             <td>${u.foto ? `<img src="${u.foto}" style="width: 32px; height: 32px; border-radius: 50%;">` : '<span class="material-symbols-outlined">person</span>'}</td>
